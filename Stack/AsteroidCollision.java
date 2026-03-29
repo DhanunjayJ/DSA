@@ -1,4 +1,14 @@
-while (i < n) {
+class Solution {
+    public int[] asteroidCollision(int[] asteroids) {
+
+        int n = asteroids.length;
+
+        Deque<Integer> st = new ArrayDeque<>();
+
+        int i = 0;
+
+    while(i<n){
+
     int asteroid = asteroids[i];
 
     // Case 1: Asteroid moving right (+) or Stack is empty or Left-moving (-) asteroid hits another Left-moving one
@@ -21,5 +31,15 @@ while (i < n) {
         // Negative is smaller: it explodes, positive survives.
         // Just move to the next asteroid in the input array.
         i++;
+    }
+}
+
+        int [] ans = new int[st.size()];
+
+        for(int j=st.size()-1;j>=0;j--){
+            ans[j] = st.pop();
+        }
+
+        return ans;
     }
 }

@@ -1,5 +1,4 @@
 // Three pass Approach
-
 class Solution {
     final long MOD = 1_000_000_007;
     public int sumSubarrayMins(int[] arr) {

@@ -8,7 +8,7 @@ class Solution {
         StringBuilder str = new StringBuilder();
 
         //maintain the montonic increasing stack and pop the the element
-        //when we have element that are greater thatn what is there ont he
+        //when we have element that are less than what is there ont he
         //top of the stack.
         for(int i=0;i<num.length();i++){
             char c = num.charAt(i);
