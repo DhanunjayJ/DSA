@@ -42,24 +42,38 @@ class Solution {
 // Single Pass Approach Using the Monotonic Stack in Increasing order.
 
 class Solution {
+    final long MOD = 1_000_000_007;
     public int sumSubarrayMins(int[] arr) {
-        int n = arr.length;
+        // first approach is that we can find it by checking all the subarrays. that is ofO(n3) 
+        // but ask differnt quesiotn , how many subarrays does the current element is minimum.
+        // we can find that out by checking the boudnary of the left and right. when we find the number
+        // that is less that the current one, then we found the boudnary.
+        // To do that easily we use te nse on left and right. 
+        // if we maintain a montonic increasing stack when ever we find a element
+        // tat is less than the top of the stack. then it the right boundary.
+        // since the stack is incresing oder the left boundary is just the below it. 
+        //once we found the boundaries then fid the subarrays count and mulitply it with
+        // the one that we just pop from the stack.
+
         Deque<Integer> st = new ArrayDeque<>();
-        final long MOD = 1_000_000_007L;
-        long totalSum = 0;
+        long ans = 0;
+        int n = arr.length;
+
         for(int i=0;i<=n;i++){
-            long currentVal = (i==n) ? 0 : arr[i];
-            while(!st.isEmpty() && currentVal<arr[st.peek()]){
+            //to handle the case of the last one where all are in the incresing order
+            // we use this logic
+            long val = (i==n) ? 0 : arr[i];
+
+            while(!st.isEmpty() && val<arr[st.peek()]){
                 int mid = st.pop();
-                long leftBoundary = st.isEmpty() ? -1 : st.peek();
-                long rightBoundary = i;
-                long countOfSubarrays = (mid-leftBoundary)*(rightBoundary-mid)%MOD;
-                long contribution = (countOfSubarrays*arr[mid])%MOD;
-                totalSum += contribution;
+                long leftB = st.isEmpty() ? -1 : st.peek();
+                long rightB = i;
+                long countSubarrays = (mid-leftB)*(rightB-mid)%MOD; 
+                long sum = (countSubarrays*arr[mid])%MOD;
+                ans += sum;
             }
             st.push(i);
         }
-        return (int)(totalSum%MOD);
+        return (int) (ans%MOD);
     }
 }
-
