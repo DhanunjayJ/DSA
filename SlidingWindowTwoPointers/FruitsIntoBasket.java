@@ -20,3 +20,28 @@ class Solution {
         return maxlen;
     }
 }
+
+
+// Using Non Shrinking Window and Freq Map array
+class Solution {
+    public int totalFruit(int[] fruits) {
+    //    HashMap<Integer,Integer> hm = new HashMap<>();
+       int [] freqMap = new int[1_000_01];
+       int start = 0,end;
+       int n = fruits.length;
+       int unique = 0;
+       for(end=0;end<n;end++){
+        // hm.put(fruits[end],hm.getOrDefault(fruits[end],0)+1);
+        if(freqMap[fruits[end]]==0) unique ++;
+        freqMap[fruits[end]]++;
+        if(unique>2){
+            // hm.put(fruits[start],hm.get(fruits[start])-1);
+            freqMap[fruits[start]]--;
+            // if(hm.get(fruits[start])==0) hm.remove(fruits[start]);
+            if(freqMap[fruits[start]]==0) unique--;
+            start++;
+        }
+       }
+       return end-start;
+    }
+}
