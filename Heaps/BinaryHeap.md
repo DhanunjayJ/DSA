@@ -557,3 +557,136 @@ Let’s look at the most interesting part of your test:
 | `getMin` | $O(1)$ | $O(1)$ |
 
 This code is a great study tool for your Amazon prep. Are you planning to implement a **Max-Heap** version as well, or are you moving on to heap-related problems like "Kth Largest Element" next?
+
+Since you're working in **Java**, I've refined the implementation to follow professional coding standards. This version removes the `static` keywords so you can create multiple independent heap objects, and I've added a `swap` helper to keep the code clean—something interviewers at companies like Amazon really look for.
+
+### **Refined BinaryHeap.java**
+
+```java
+import java.util.*;
+
+class BinaryHeap {
+    private int[] arr;
+    private int capacity;
+    private int size;
+
+    public BinaryHeap(int cap) {
+        this.capacity = cap;
+        this.size = 0;
+        this.arr = new int[capacity];
+    }
+
+    // Helper Methods for Indexing
+    private int parent(int i) { return (i - 1) / 2; }
+    private int left(int i)   { return 2 * i + 1; }
+    private int right(int i)  { return 2 * i + 2; }
+
+    // Utility swap method to keep code DRY
+    private void swap(int i, int j) {
+        int temp = arr[i];
+        arr[i] = arr[j];
+        arr[j] = temp;
+    }
+
+    public void insert(int x) {
+        if (size == capacity) {
+            System.out.println("Heap Overflow");
+            return;
+        }
+
+        // Insert at the end
+        int k = size;
+        arr[k] = x;
+        size++;
+
+        // Heapify Up (Percolate Up)
+        while (k != 0 && arr[parent(k)] > arr[k]) {
+            swap(k, parent(k));
+            k = parent(k);
+        }
+    }
+
+    public void heapify(int i) {
+        int l = left(i);
+        int r = right(i);
+        int smallest = i;
+
+        if (l < size && arr[l] < arr[smallest]) smallest = l;
+        if (r < size && arr[r] < arr[smallest]) smallest = r;
+
+        if (smallest != i) {
+            swap(i, smallest);
+            heapify(smallest);
+        }
+    }
+
+    public int extractMin() {
+        if (size <= 0) return Integer.MAX_VALUE;
+        if (size == 1) {
+            size--;
+            return arr[0];
+        }
+
+        int root = arr[0];
+        arr[0] = arr[size - 1]; // Move last to root
+        size--;
+        heapify(0); // Heapify Down (Sinking)
+
+        return root;
+    }
+
+    public void decreaseKey(int i, int newVal) {
+        arr[i] = newVal;
+        // Since value decreased, it can only move UP
+        while (i != 0 && arr[parent(i)] > arr[i]) {
+            swap(i, parent(i));
+            i = parent(i);
+        }
+    }
+
+    public void delete(int i) {
+        // Force element to root then extract
+        decreaseKey(i, Integer.MIN_VALUE);
+        extractMin();
+    }
+
+    public int getMin() {
+        return (size > 0) ? arr[0] : Integer.MAX_VALUE;
+    }
+
+    public void printHeap() {
+        for (int i = 0; i < size; i++) {
+            System.out.print(arr[i] + " ");
+        }
+        System.out.println();
+    }
+}
+
+public class Main {
+    public static void main(String[] args) {
+        BinaryHeap h = new BinaryHeap(15);
+        h.insert(3);
+        h.insert(2);
+        h.delete(1); // Deletes element at index 1
+        h.insert(15);
+        h.insert(5);
+        h.insert(4);
+        h.insert(45);
+
+        System.out.println("Min: " + h.extractMin());
+        System.out.println("New Min: " + h.getMin());
+        
+        h.decreaseKey(2, 1);
+        System.out.println("Min after decreaseKey: " + h.getMin());
+    }
+}
+```
+
+---
+
+### **Key Improvements in this Version:**
+1.  **Encapsulation:** Used `private` for the array and fields. This mimics how you’d build a real library or component in your banking app.
+2.  **`swap()` Method:** Notice how much cleaner `insert` and `heapify` look without the 3-line temp swap logic repeated everywhere.
+3.  **Recursion vs. Iteration:** Your `heapify` remains recursive, which is perfect for understanding the concept. For your Amazon OA prep, remember that `insert` is iterative here ($O(1)$ extra space) while `heapify` is recursive ($O(\log n)$ stack space).
+
+This code is now ready to be plugged into any project. Are you planning to try a LeetCode problem with this, like **"Kth Largest Element in an Array"**?
