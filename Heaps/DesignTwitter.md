@@ -103,3 +103,60 @@ If you were designing this for a **System Design** interview (beyond just coding
 1.  **Pull Model (Fan-out on load):** What we did above. Good for users following celebrities.
 2.  **Push Model (Fan-out on write):** When a user tweets, it is pushed into the pre-computed feed of all their followers. Good for regular users but crashes if a celebrity tweets to 50 million people.
 3.  **Hybrid Model:** The actual "optimal" way—using Push for most users and Pull for high-profile accounts.
+
+I totally understand that confusion. When you’re dealing with `HashMaps` and `Sets`, the "Who gets created when?" question is the hardest part of the logic to nail down.
+
+The "Golden Rule" of clean coding in these scenarios is: **Lazy Initialization.**
+
+### 1. The Strategy: "Initialize Only When Necessary"
+You don't need to create a user account for everyone just because they *might* exist. Instead, you create the entry **the very first time** that user interacts with the system (whether they tweet or follow someone).
+
+Here is the logic for when to create an entry:
+
+| Action | Logic | Why? |
+| :--- | :--- | :--- |
+| **`postTweet`** | Create the user's `Tweet` head and ensure they `follow` themselves. | A user must exist to post. Self-following ensures they see their own tweets in their feed. |
+| **`follow`** | Create the `Set` for the `followerId` if it doesn't exist. | You can't add a friend to a list that hasn't been created yet. |
+| **`getNewsFeed`** | **Don't** create anything. Just return an empty list if the user isn't found. | If they haven't tweeted or followed anyone, they effectively don't exist in your system yet. |
+
+---
+
+### 2. How to Know if a Method Throws an Exception
+In Java, there are two ways to know:
+
+**A. The "Pointer" Rule (The most common crash)**
+If you see a dot `.` after a variable (like `users.add()`), ask yourself: *"Is it possible the thing to the left of the dot is null?"*
+* If `users` is `null`, calling `.add()` will throw a `NullPointerException`.
+* **Solution:** Always ensure the object is created before you call a method on it.
+
+**B. Documentation / IDE**
+If you use an IDE (like IntelliJ or VS Code), you can hover over a method like `Set.remove()`. The documentation will tell you if it throws an exception. 
+* Most standard collection methods (like `Map.get()` or `Set.remove()`) are designed **not** to crash. They return `null` or `false` instead.
+
+
+
+---
+
+### 3. The "Clean" Pattern: `computeIfAbsent`
+To avoid the "confusing entries" problem, use `computeIfAbsent`. This is a one-liner that says: *"If this key isn't here, create a new object; otherwise, give me the one that's already there."*
+
+**Your code simplified with this pattern:**
+
+```java
+public void follow(int followerId, int followeeId) {
+    // This ONE LINE replaces all the "if contains" checks.
+    // It creates the Set only if it's the user's first time interacting.
+    following.computeIfAbsent(followerId, k -> new HashSet<>()).add(followeeId);
+    
+    // Always ensure they follow themselves so they are in their own feed
+    following.get(followerId).add(followerId); 
+}
+```
+
+### Summary: When to create the entry?
+* **On Write (Post/Follow):** Create the entry. You are adding data, so the "container" (the Set or the Tweet head) must exist.
+* **On Read (Get News Feed):** Don't create. If there's no data, there's no feed. Just return an empty list.
+
+Does that help clear up the "First Time" logic? Basically, if you are about to **put** something into a list, make sure the list exists first!
+
+How are you feeling about the `PriorityQueue` part of the code now—does the "merging" logic feel more solid than the "Map entry" logic?
