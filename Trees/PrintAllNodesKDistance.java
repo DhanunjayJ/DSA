@@ -67,3 +67,57 @@ class Solution {
     }
 }
 }
+
+
+//DFS Appraoch s.c O(H)
+
+class Solution {
+    List<Integer> result = new ArrayList<>();
+
+    public List<Integer> distanceK(TreeNode root, TreeNode target, int k) {
+        findTarget(root, target, k);
+        return result;
+    }
+
+    private int findTarget(TreeNode node, TreeNode target, int k) {
+        if (node == null) return -1;
+
+        if (node == target) {
+            collectSubtreeNodes(node, k);
+            return 1; 
+        }
+
+
+        int leftDist = findTarget(node.left, target, k);
+        if (leftDist != -1) {
+            if (leftDist == k) result.add(node.val);
+            else {
+                collectSubtreeNodes(node.right, k - leftDist - 1);
+            }
+            return leftDist + 1;
+        }
+
+        int rightDist = findTarget(node.right, target, k);
+        if (rightDist != -1) {
+            if (rightDist == k) result.add(node.val);
+            else {
+                collectSubtreeNodes(node.left, k - rightDist - 1);
+            }
+            return rightDist + 1;
+        }
+
+        return -1;
+    }
+
+    private void collectSubtreeNodes(TreeNode node, int d) {
+        if (node == null || d < 0) return;
+        
+        if (d == 0) {
+            result.add(node.val);
+            return;
+        }
+
+        collectSubtreeNodes(node.left, d - 1);
+        collectSubtreeNodes(node.right, d - 1);
+    }
+}
