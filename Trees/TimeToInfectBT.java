@@ -75,3 +75,67 @@ class Solution {
     }
 }
 }
+
+
+// In the above appraoch we visited each node once and also we create
+//a undirected graph. how to do it without creating undirectd grah. 
+
+/**
+ * Definition for a binary tree node.
+ * public class TreeNode {
+ *     int val;
+ *     TreeNode left;
+ *     TreeNode right;
+ *     TreeNode() {}
+ *     TreeNode(int val) { this.val = val; }
+ *     TreeNode(int val, TreeNode left, TreeNode right) {
+ *         this.val = val;
+ *         this.left = left;
+ *         this.right = right;
+ *     }
+ * }
+ */
+class Solution {
+
+    int maxDistance = Integer.MIN_VALUE;
+
+    public int amountOfTime(TreeNode root, int start) {
+        traverse(root,start);
+        return maxDistance;
+    }
+
+    public int traverse(TreeNode root,int start){
+        if(root==null) return 0;
+
+        //we have found the start node we have to 
+        // to find the max distance to down. based on what is max
+        //we update the max.
+        //and we return -1 saying that the infected node is 
+        // 1 nodes away from you. 
+        //-ve is a indecation that the this substree was infected.
+
+        int left = traverse(root.left,start);
+        int right = traverse(root.right,start);
+
+        if(root.val == start){
+            maxDistance = Math.max(Math.max(left,right),maxDistance);
+            return -1;
+        }
+
+        if(left<0){
+            //the start is in the left substree
+            // then we need to ge tthe distance to the node 
+            //to the start node
+            int leftDist = Math.abs(left);
+            maxDistance = Math.max(leftDist+right,maxDistance);
+            return left-1;
+        }
+        if(right<0){
+            int rightDist = Math.abs(right);
+            maxDistance = Math.max(rightDist+left,maxDistance);
+            return right-1;
+        }
+
+        return Math.max(left,right)+1;
+    }
+}
