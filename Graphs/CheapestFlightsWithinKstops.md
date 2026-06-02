@@ -182,3 +182,43 @@ class Solution {
 | **Bellman-Ford** | $\mathcal{O}(K \cdot E)$ | $\mathcal{O}(N)$ | Small $K$, clean and short code. |
 | **Standard BFS** | $\mathcal{O}(K \cdot N + E)$ | $\mathcal{O}(N + E)$ | Intuitive level-by-level traversal. |
 | **Modified Dijkstra** | $\mathcal{O}(E \log N)$ | $\mathcal{O}(N + E)$ | Dense graphs where finding the absolute cheapest path quickly is vital. |
+
+
+
+---
+
+Let's break down exactly why this works based on your observation:
+
+### 1. The Priority Queue Always Prioritizes Price
+
+Because the Priority Queue is sorted strictly by **price**, it will always pop out the cheapest available option across the *entire* graph first. It doesn't care how many stops a path took; it just looks at the wallet cost.
+
+### 2. We Only Return When Destination (`dst`) is Popped
+
+The moment `u == dst` is pulled out of the Priority Queue, Dijkstra's greedy property guarantees that this is the **absolute cheapest valid path** to the destination.
+
+Why? Because if there were a cheaper valid path to `dst`, its total price would be smaller, meaning the Min-Heap would have popped it out sooner!
+
+### 3. The `stops` Array is Just a Safety Net
+
+The only reason we keep track of `stopsVisited[v]` is to decide whether or not to **add** a path to the queue.
+
+* It acts like a filter at the entrance of the queue.
+* It allows a more expensive path to enter the queue *only* if it has fewer stops, just in case the cheaper paths run out of stops later.
+* Once inside the queue, that expensive path has to wait its turn. It will only be processed if all the cheaper paths turn out to be dead ends (i.e., they hit the `stops > k` boundary and get thrown away).
+
+### An Intuitive Way to Visualize It:
+
+Imagine two runners trying to reach the destination:
+
+* **Runner A (Cheap but Slow on Stops):** Gets to an intermediate city for $20, but has already used up all available stops. He is at the front of the line because he's cheap, but when he tries to take the next flight, the algorithm says `if (stops > k) continue;` and kicks him out.
+* **Runner B (Expensive but Fast on Stops):** Gets to that same intermediate city for $50, but has 0 stops used. Because he has fewer stops, the filter let him into the queue. He was waiting at the back of the line because he's expensive. But now that Runner A is disqualified, Runner B steps up, takes the final flight, and reaches the destination successfully.
+
+When Runner B finally reaches the destination and is popped from the queue, the code hits:
+
+```java
+if (u == dst) return price;
+
+```
+
+And you get your correct, cheapest *valid* price!
