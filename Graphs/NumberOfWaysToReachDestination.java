@@ -1,10 +1,5 @@
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.PriorityQueue;
+import java.util.*;
 
-public class NumberOfWaysToReachDestination {
-    
 class Solution {
 
     public class Pair {
@@ -20,74 +15,57 @@ class Solution {
     int MOD = 1_000_000_007;
 
     public int countPaths(int n, int[][] roads) {
-        /*
-        Here we maintain a two arrays 
-        dist
-        and ways.
-        
-        First we do find the shortest dist from 0 to i. 
-        then once find it. using dijkstra
-        
-        if(dist[v]>dist[u]+time) update the time and ways of parnet will be assigned
-        if(dist[v]==dist[u]+time) update the ways = curr + parent ways. 
-        
-        */
-
         long[] dist = new long[n];
         long[] ways = new long[n];
 
-        //bild the graph. since this is a bidirectional grpah.
-        //if we build a bidirectional. we only move from the parent to child
-        //since we reach like a dag. and only update if dist[v] > currnt
-        //it won't affect
-
         List<List<Pair>> adj = new ArrayList<>();
+        for (int i = 0; i < n; i++) adj.add(new ArrayList<>());
 
-        for(int i=0;i<n;i++) adj.add(new ArrayList<>());
-
-        for (int i = 0; i < roads.length; i++) {
-            int u = roads[i][0];
-            int v = roads[i][1];
-            int time = roads[i][2];
+        for (int[] road : roads) {
+            int u = road[0];
+            int v = road[1];
+            long time = road[2];
             adj.get(u).add(new Pair(v, time));
             adj.get(v).add(new Pair(u, time));
         }
 
+        // Initialize with a safe, true infinity
         Arrays.fill(dist, Long.MAX_VALUE);
         dist[0] = 0;
         ways[0] = 1;
 
-        //[destination,cummulative_time]
+        // Priority Queue stores: [node, current_accumulated_distance]
+        // Sorted cleanly by accumulated distance (64-bit safe)
         PriorityQueue<long[]> pq = new PriorityQueue<>((a, b) -> Long.compare(a[1], b[1]));
-
-        pq.add(new long[] {0, 0});
+        pq.add(new long[] { 0, 0 });
 
         while (!pq.isEmpty()) {
-
             long[] rem = pq.remove();
-
             int u = (int) rem[0];
-            long ctime = rem[1];
+            long d = rem[1];
 
-            if(ctime > dist[u]) continue;
+            // Stale check: If we already found a strictly shorter path to u, 
+            // discard this older, longer path extraction.
+            if (d > dist[u]) continue;
 
             for (Pair nbr : adj.get(u)) {
                 int v = nbr.node;
                 long time = nbr.time;
 
-                if(dist[v]>dist[u]+time){
+                // Scenario A: Found a strictly shorter path to neighbor 'v'
+                if (dist[v] > dist[u] + time) {
                     dist[v] = dist[u] + time;
-                    ways [v] = ways[u];
-                    pq.add(new long[]{v,dist[v]});
-                }else if(dist[v]==dist[u]+time){
-                    ways[v] = (ways[v]+ways[u])%MOD;
+                    ways[v] = ways[u]; 
+                    pq.add(new long[] { v, dist[v] }); // Push the new shorter accumulated distance
+                } 
+                // Scenario B: Found an alternative path to 'v' with the exact same shortest time
+                else if (dist[v] == dist[u] + time) {
+                    ways[v] = (ways[v] + ways[u]) % MOD;
+                    // NO need to push to PQ again here, as the minimum distance didn't change!
                 }
             }
-
         }
 
         return (int) ways[n - 1];
-
     }
-}
 }
