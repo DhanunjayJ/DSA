@@ -1,224 +1,184 @@
-Your approach for **LeetCode 787: Cheapest Flights Within K Stops** is on the right track! You’ve correctly identified that this is a shortest-path problem with a constraint (maximum of $k$ stops), and you're using a Breadth-First Search (BFS) / Level-Order Traversal approach to explore the graph level by level (where each level represents the number of stops).
-
-However, your code has a **critical logical flaw** that will cause it to fail on certain test cases, plus a few missed opportunities for optimization.
+These three code blocks represent the **three standard ways** to solve the *Cheapest Flights Within K Stops* problem. Now that we've talked about the logical traps of this problem (like information bleeding and over-pruning), looking at these codes will make perfect sense!
 
 ---
 
-## 🛑 The Issue with Your Current Approach
+## Code 1: Level-by-Level BFS (Breadth-First Search)
 
-Your `minPrice` array only keeps track of the absolute minimum price seen so far at any node.
+This code uses a standard queue to traverse the graph layer by layer, where each "layer" represents the total number of flights taken.
 
-**The Bug:** If your code visits a node via a path that is **cheaper but uses more stops**, it will overwrite `minPrice[node]` and block any subsequent paths to that node. However, a later path might be **more expensive but use fewer stops**, which could actually be the *only* path capable of reaching the destination within the $k$ stops limit.
+### How it works:
 
-### Example where your code fails:
-
-Imagine you want to go from `A` to `C` with `k = 1`.
-
-* Path 1: `A -> B` (Price: 10, Stops: 0) -> `B -> D` (Price: 10, Stops: 1) -> `D -> C` (Price: 10, Stops: 2). Total price = 30, but 2 stops (Invalid, since $k=1$).
-* Path 2: `A -> D` (Price: 50, Stops: 0) -> `D -> C` (Price: 10, Stops: 1). Total price = 60, 1 stop (Valid!).
-
-If Path 1 reaches node `D` first, it sets `minPrice[D] = 20`. When Path 2 reaches `D` with a price of 50, your condition `if(minPrice[nbr.node] > nextPrice)` fails because $20 < 50$. Path 2 is pruned, and your code will return `-1` instead of `60`.
-
----
-
-## 🏆 The "Standard" Way: Modified BFS (Level-by-Level)
-
-The cleanest standard way to fix your exact logic is to change the loop structure. Instead of tracking stops inside the queue array element, **process the queue level by level (size-by-size) exactly $k+1$ times**.
-
-To fix the bug mentioned above, we use a clone/copy of our `minPrice` array at each level so that updates within the same number of stops don't prematurely block other valid routes.
-
-### Optimized Standard Solution (BFS):
-
+* **The Layer Trick (`while (sz-- > 0)`):** Before expanding any nodes, it records the size of the queue (`sz = q.size()`). It processes exactly that many nodes inside the inner loop. This guarantees that **all nodes processed within this inner loop have taken exactly the same number of stops**.
+* **Tracking Progress:** The `stops` counter is only incremented *after* an entire layer of the queue is emptied. This elegantly keeps track of the $k$ stop constraint without needing to bundle the stop count inside the queue array elements.
+* **The Filter (`price + distance >= dist[neighbour]`):** It only pushes a neighbor into the queue if this new route offers a strictly cheaper price than previously recorded for that neighbor.
 ```java
+
 class Solution {
     public int findCheapestPrice(int n, int[][] flights, int src, int dst, int k) {
-        // 1. Build adjacency list
-        List<List<int[]>> adj = new ArrayList<>();
-        for (int i = 0; i < n; i++) adj.add(new ArrayList<>());
-        for (int[] flight : flights) {
-            adj.get(flight[0]).add(new int[]{flight[1], flight[2]}); // {neighbor, price}
-        }
+        Map<Integer, List<int[]>> adj = new HashMap<>();
+        for (int[] i : flights)
+            adj.computeIfAbsent(i[0], value -> new ArrayList<>()).add(new int[] { i[1], i[2] });
 
-        // 2. minPrice array tracking the cheapest cost to reach each node
-        int[] minPrice = new int[n];
-        Arrays.fill(minPrice, Integer.MAX_VALUE);
-        minPrice[src] = 0;
+        int[] dist = new int[n];
+        Arrays.fill(dist, Integer.MAX_VALUE);
 
-        // Queue stores only the node ID
-        Queue<int[]> q = new LinkedList<>(); 
-        q.add(new int[]{src, 0}); // {node, current_price_from_src}
-
+        Queue<int[]> q = new LinkedList<>();
+        q.offer(new int[] { src, 0 });
         int stops = 0;
-        
-        // Loop at most k + 1 times (since k stops means k + 1 edges)
-        while (!q.isEmpty() && stops <= k) {
-            int size = q.size();
-            // Create a copy to prevent updating prices using edges from the same level
-            int[] nextMinPrice = Arrays.copyOf(minPrice, n);
 
-            for (int i = 0; i < size; i++) {
-                int[] curr = q.poll();
-                int u = curr[0];
-                int pricePaid = curr[1];
+        while (stops <= k && !q.isEmpty()) {
+            int sz = q.size();
+            // Iterate on current level.
+            while (sz-- > 0) {
+                int[] temp = q.poll();
+                int node = temp[0];
+                int distance = temp[1];
 
-                // If this path is already worse than something we found in a previous level, skip
-                if (pricePaid > minPrice[u]) continue;
-
-                for (int[] nbr : adj.get(u)) {
-                    int v = nbr[0];
-                    int weight = nbr[1];
-
-                    if (pricePaid + weight < nextMinPrice[v]) {
-                        nextMinPrice[v] = pricePaid + weight;
-                        q.add(new int[]{v, nextMinPrice[v]});
-                    }
+                if (!adj.containsKey(node))
+                    continue;
+                // Loop over neighbors of popped node.
+                for (int[] e : adj.get(node)) {
+                    int neighbour = e[0];
+                    int price = e[1];
+                    if (price + distance >= dist[neighbour])
+                        continue;
+                    dist[neighbour] = price + distance;
+                    q.offer(new int[] { neighbour, dist[neighbour] });
                 }
             }
-            minPrice = nextMinPrice; // Move to the next step/stop level
             stops++;
         }
-
-        return minPrice[dst] == Integer.MAX_VALUE ? -1 : minPrice[dst];
+        return dist[dst] == Integer.MAX_VALUE ? -1 : dist[dst];
     }
 }
 
 ```
+### Why it's clean:
+
+Because it processes level-by-level, you don't need a complex multi-dimensional array tracker. You can guarantee that once `stops` crosses $k$, you've looked exactly as far as the rules allow.
 
 ---
 
-## 🔄 Alternative Approaches
+## Code 2: Bellman-Ford Algorithm (Edge Relaxation)
 
-Here are the other two popular paradigms used to solve this problem.
+This code approaches the problem by focusing purely on the flights (edges) rather than traversing nodes step-by-step.
 
-### 1. The Bellman-Ford Algorithm (Easiest to implement)
+### How it works:
 
-Because we are strictly bounded by $k$ stops ($k+1$ edges), Bellman-Ford is perfect here. We just run the relaxation loop exactly $k+1$ times.
-
-* **Time Complexity:** $\mathcal{O}(K \times E)$ where $E$ is the number of flights.
-* **Space Complexity:** $\mathcal{O}(N)$ to store prices.
+* **The K Constraint:** It runs the outer loop exactly `k + 1` times. This forces the algorithm to find paths that use a maximum of $k + 1$ flights (which equals $k$ stops).
+* **The Snapshot (`int[] temp = Arrays.copyOf(dist, n)`):** This is the exact `temp` array concept we discussed! By modifying `temp` based on the old values in `dist`, it ensures that a flight sequence like $0 \rightarrow 1$ and $1 \rightarrow 2$ cannot both be calculated inside the same iteration loop.
+* **Updating:** After all flights are evaluated for the current iteration, it updates `dist = temp` to unlock those newly discovered cities for the next iteration.
 
 ```java
 class Solution {
     public int findCheapestPrice(int n, int[][] flights, int src, int dst, int k) {
-        int[] prices = new int[n];
-        Arrays.fill(prices, Integer.MAX_VALUE);
-        prices[src] = 0;
+        // Distance from source to all other nodes.
+        int[] dist = new int[n];
+        Arrays.fill(dist, Integer.MAX_VALUE);
+        dist[src] = 0;
 
-        // Relax all edges k + 1 times
+        // Run only K+1 times since we want shortest distance in K hops
         for (int i = 0; i <= k; i++) {
-            int[] temp = Arrays.copyOf(prices, n);
+            // Create a copy of dist vector.
+            int[] temp = Arrays.copyOf(dist, n);
             for (int[] flight : flights) {
-                int u = flight[0];
-                int v = flight[1];
-                int price = flight[2];
-
-                if (prices[u] != Integer.MAX_VALUE && prices[u] + price < temp[v]) {
-                    temp[v] = prices[u] + price;
+                if (dist[flight[0]] != Integer.MAX_VALUE) {
+                    temp[flight[1]] = Math.min(temp[flight[1]], dist[flight[0]] + flight[2]);
                 }
             }
-            prices = temp;
+            // Copy the temp vector into dist.
+            dist = temp;
         }
-
-        return prices[dst] == Integer.MAX_VALUE ? -1 : prices[dst];
+        return dist[dst] == Integer.MAX_VALUE ? -1 : dist[dst];
     }
-}
+};
 
 ```
+### Why it's clean:
 
-### 2. Modified Dijkstra's Algorithm (Fastest for large graphs)
+It bypasses building a graph adjacency list entirely. It reads directly from the raw `flights` array, making it incredibly space-efficient and short to write.
 
-Standard Dijkstra uses a PriorityQueue sorted by distance/price. To make it work with the $k$-stops constraint, we sort the PriorityQueue by **price**, but we also keep track of how many stops it took to get there. We only prune a path if it is *both* more expensive and takes more stops than a previously seen path.
+---
 
-* **Time Complexity:** $\mathcal{O}(E + N \log N)$
-* **Space Complexity:** $\mathcal{O}(N + E)$
+## Code 3: Modified Dijkstra's Algorithm
+
+This code uses a `PriorityQueue` sorted by **price** (`(a, b) -> a[0] - b[0]`), ensuring it always picks the absolute cheapest known path to explore next.
+
+### How it works:
+
+* **Queue Structure:** The Priority Queue stores items as `{dist, node, steps}`.
+* **The Clever Pruning Guard:** 
 
 ```java
+if (steps > stops[node] || steps > k + 1) continue;
+```
+
+This is how it handles the constraint safely. It maintains an array called `stops[]` that records the *minimum number of stops* used to reach each node so far. 
+If a path pulled from the queue took **more steps** to reach `node` than a path we processed earlier, it skips it (`continue`). 
+
+```java
+import java.util.*;
+
 class Solution {
     public int findCheapestPrice(int n, int[][] flights, int src, int dst, int k) {
+        // 1. Initialize the graph using a List of Lists
         List<List<int[]>> adj = new ArrayList<>();
-        for (int i = 0; i < n; i++) adj.add(new ArrayList<>());
-        for (int[] f : flights) adj.get(f[0]).add(new int[]{f[1], f[2]});
+        for (int i = 0; i < n; i++) {
+            adj.add(new ArrayList<>());
+        }
 
-        // Priority Queue: {node, price, stops} -> sorted by price ascending
-        PriorityQueue<int[]> pq = new PriorityQueue<>((a, b) -> Integer.compare(a[1], b[1]));
-        pq.add(new int[]{src, 0, 0});
+        // 2. Populate the adjacency list
+        for (int[] flight : flights) {
+            int u = flight[0];
+            int v = flight[1];
+            int price = flight[2];
+            adj.get(u).add(new int[] { v, price });
+        }
 
-        // Track stops to reach a node. 
-        // We only visit a node if we found a path with FEWER stops than before.
-        int[] stopsVisited = new int[n];
-        Arrays.fill(stopsVisited, Integer.MAX_VALUE);
-        stopsVisited[src] = 0;
+        // Track the minimum number of stops used to reach each node
+        int[] stops = new int[n];
+        Arrays.fill(stops, Integer.MAX_VALUE);
+        
+        // PriorityQueue sorted by distance/cost ascending: {dist, node, steps}
+        PriorityQueue<int[]> pq = new PriorityQueue<>((a, b) -> Integer.compare(a[0], b[0]));
+        pq.offer(new int[] { 0, src, 0 });
 
         while (!pq.isEmpty()) {
-            int[] curr = pq.poll();
-            int u = curr[0];
-            int price = curr[1];
-            int stops = curr[2];
+            int[] temp = pq.poll();
+            int dist = temp[0];
+            int node = temp[1];
+            int steps = temp[2];
 
-            if (u == dst) return price;
-            if (stops > k) continue; // Cannot move forward if we already hit the limit
+            // If this path takes more stops than a previous path to this node,
+            // or if it exceeds the maximum allowed flights (k stops means k + 1 flights)
+            if (steps > stops[node] || steps > k + 1)
+                continue;
+            
+            // Finalize the minimum steps to reach this node
+            stops[node] = steps;
+            
+            // Since it's a Min-Heap, the first time we pop 'dst', it's guaranteed cheapest
+            if (node == dst)
+                return dist;
 
-            for (int[] nbr : adj.get(u)) {
-                int v = nbr[0];
-                int weight = nbr[1];
-
-                // Optimization: Only push to PQ if it offers fewer stops than previous visits to 'v'
-                if (stops + 1 < stopsVisited[v]) {
-                    stopsVisited[v] = stops + 1;
-                    pq.add(new int[]{v, price + weight, stops + 1});
-                }
+            // Loop over neighbors smoothly. 
+            // If adj.get(node) is empty, the loop naturally skips without crashing!
+            for (int[] nbr : adj.get(node)) {
+                int neighborNode = nbr[0];
+                int flightPrice = nbr[1];
+                
+                pq.offer(new int[] { dist + flightPrice, neighborNode, steps + 1 });
             }
         }
+        
         return -1;
     }
 }
 
 ```
 
-## 📊 Summary Comparison
+* **Early Return:** Because a Priority Queue always processes the cheapest total cost first, the very first time `node == dst` is pulled out of the queue, it is **guaranteed** to be the cheapest valid answer under the limit. It returns the price immediately.
 
-| Approach | Time Complexity | Space Complexity | Best Used For |
-| --- | --- | --- | --- |
-| **Bellman-Ford** | $\mathcal{O}(K \cdot E)$ | $\mathcal{O}(N)$ | Small $K$, clean and short code. |
-| **Standard BFS** | $\mathcal{O}(K \cdot N + E)$ | $\mathcal{O}(N + E)$ | Intuitive level-by-level traversal. |
-| **Modified Dijkstra** | $\mathcal{O}(E \log N)$ | $\mathcal{O}(N + E)$ | Dense graphs where finding the absolute cheapest path quickly is vital. |
+### Why it's clean:
 
-
-
----
-
-Let's break down exactly why this works based on your observation:
-
-### 1. The Priority Queue Always Prioritizes Price
-
-Because the Priority Queue is sorted strictly by **price**, it will always pop out the cheapest available option across the *entire* graph first. It doesn't care how many stops a path took; it just looks at the wallet cost.
-
-### 2. We Only Return When Destination (`dst`) is Popped
-
-The moment `u == dst` is pulled out of the Priority Queue, Dijkstra's greedy property guarantees that this is the **absolute cheapest valid path** to the destination.
-
-Why? Because if there were a cheaper valid path to `dst`, its total price would be smaller, meaning the Min-Heap would have popped it out sooner!
-
-### 3. The `stops` Array is Just a Safety Net
-
-The only reason we keep track of `stopsVisited[v]` is to decide whether or not to **add** a path to the queue.
-
-* It acts like a filter at the entrance of the queue.
-* It allows a more expensive path to enter the queue *only* if it has fewer stops, just in case the cheaper paths run out of stops later.
-* Once inside the queue, that expensive path has to wait its turn. It will only be processed if all the cheaper paths turn out to be dead ends (i.e., they hit the `stops > k` boundary and get thrown away).
-
-### An Intuitive Way to Visualize It:
-
-Imagine two runners trying to reach the destination:
-
-* **Runner A (Cheap but Slow on Stops):** Gets to an intermediate city for $20, but has already used up all available stops. He is at the front of the line because he's cheap, but when he tries to take the next flight, the algorithm says `if (stops > k) continue;` and kicks him out.
-* **Runner B (Expensive but Fast on Stops):** Gets to that same intermediate city for $50, but has 0 stops used. Because he has fewer stops, the filter let him into the queue. He was waiting at the back of the line because he's expensive. But now that Runner A is disqualified, Runner B steps up, takes the final flight, and reaches the destination successfully.
-
-When Runner B finally reaches the destination and is popped from the queue, the code hits:
-
-```java
-if (u == dst) return price;
-
-```
-
-And you get your correct, cheapest *valid* price!
+It's often the fastest approach for massive graphs because it stops searching the moment it hits the destination node, ignoring any lingering more-expensive routes.
