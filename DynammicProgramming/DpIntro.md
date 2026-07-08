@@ -133,3 +133,86 @@ static long bottomUpOptimized(int n) {
 }
 
 ```
+
+To master Dynamic Programming, you have to look at it like building a functional machine. Before you can write the code, you need to understand the individual structural components.
+
+Here are the formal definitions of the core concepts in DP, explained through the lens of how they actually function during a problem.
+
+---
+
+## 1. DP State
+
+The **State** is a formal representation of a specific subproblem. It is a snapshot or a set of parameters (variables) that perfectly and uniquely describes your current situation in the problem.
+
+* **Why it matters:** It tells the algorithm exactly where it is and what constraints it is currently operating under.
+* **Real-World Analogy:** If you are playing a video game, the "State" is your current save file: **(Level: 4, Health: 80%, Coins: 15)**. That information perfectly captures your exact situation.
+* **Example in CP:** In the 0/1 Knapsack problem, the state is typically defined by two parameters: `dp[i][w]`, which means: *"The maximum value possible considering the first `i` items with a remaining backpack capacity of `w`."*
+
+---
+
+## 2. Transition / Recurrence Relation
+
+The **Recurrence Relation** (often called the **Transition Equation**) is the mathematical formula or logical rule that connects a larger DP state to one or more smaller, already-solved DP states.
+
+* **Why it matters:** This is the core logic of your DP. It dictates how making a choice *transforms* your current state into the next state.
+* **Real-World Analogy:** A map direction: *"To get to the finish line, you must take the minimum distance of either (Path A + 5 minutes) or (Path B + 10 minutes)."*
+* **Example in CP:** For the Fibonacci sequence, the recurrence relation is:
+
+$$dp[n] = dp[n-1] + dp[n-2]$$
+
+
+
+For Knapsack, it represents the choice of either skipping or taking an item:
+
+$$dp[i][w] = \max(dp[i-1][w], \; dp[i-1][w-\text{weight}[i]] + \text{value}[i])$$
+
+
+
+---
+
+## 3. Base Case
+
+The **Base Case** is the smallest, most fundamental subproblem whose answer is already known upfront without needing any calculation.
+
+* **Why it matters:** Because DP states depend on smaller states, the chain has to stop somewhere. Without a base case, your recurrence relation would loop infinitely into negative numbers or out-of-bounds memory.
+* **Real-World Analogy:** Knowing that $0! = 1$ or that you start a game at Level 1 with $0.
+* **Example in CP:** In climbing stairs (where you can take 1 or 2 steps), the base cases are: `dp[0] = 1` (1 way to stay at the ground) and `dp[1] = 1` (1 way to reach the first step).
+
+---
+
+## 4. Memoization (Top-Down Approach)
+
+**Memoization** is the technique of solving a problem recursively by starting at the final, ultimate goal and breaking it down backward. Crucially, whenever you calculate the answer to a state, you write it down in a lookup table (cache) so that if you encounter that state again, you return the cached answer instantly in $O(1)$ time.
+
+* **The Flow:** Start at `Solve(N)` $\rightarrow$ Ask for `Solve(N-1)` $\rightarrow$ Keep drilling down to the Base Case $\rightarrow$ Return the values back up while saving them.
+* **Keywords:** Recursion, Cache, Look-up, "Top-Down".
+
+---
+
+## 5. Tabulation (Bottom-Up Approach)
+
+**Tabulation** is the technique of solving a problem iteratively by starting directly at the **Base Cases** and filling out a table (an array or matrix) sequentially until you reach the final target state.
+
+* **The Flow:** Initialize `dp[0]`, then use a loop (`for i from 1 to N`) to build up `dp[i]` step-by-step using the values you *just* calculated.
+* **Keywords:** Iterative, For-loops, Table-filling, "Bottom-Up".
+* **Why CPers love it:** It completely avoids the overhead of function calls on the recursion stack, preventing "Stack Overflow" errors on large inputs.
+
+---
+
+## 6. Optimal Substructure & Overlapping Subproblems
+
+These are the two **prerequisites** a problem must possess for DP to even be a valid solution:
+
+* **Optimal Substructure:** A global optimal solution can be constructed optimally from the optimal solutions of its local subproblems. (e.g., The shortest path from Pune to Delhi via Mumbai contains the absolute shortest path from Pune to Mumbai).
+* **Overlapping Subproblems:** The naive recursive execution path naturally visits the exact same states over and over again. If the states were completely unique every time, caching them would be useless.
+
+---
+
+### Putting It All Together: The DP Workflow
+
+When you approach a CP problem, your mental pipeline follows these exact definitions in order:
+
+1. Define the **DP State** (What variables do I need to track?).
+2. Pin down the **Base Cases** (What do I know for free?).
+3. Craft the **Recurrence Relation** (How do I transition between states based on my choices?).
+4. Choose the strategy: Implement via **Tabulation** or **Memoization**.

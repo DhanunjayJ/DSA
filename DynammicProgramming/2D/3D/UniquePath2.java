@@ -1,6 +1,7 @@
 import java.util.Arrays;
 
 public class UniquePath2 {
+    
     class Solution {
     public int uniquePathsWithObstacles(int[][] obstacleGrid) {
         int m = obstacleGrid.length;
@@ -11,6 +12,7 @@ public class UniquePath2 {
         }
         return helper(dp,obstacleGrid,m-1,n-1);
     }
+
     public int helper(int [][] dp,int [][] grid,int i,int j){
         if(i<0 || j<0 || grid[i][j]==1) return 0;
         if(i==0 && j==0) return 1;
