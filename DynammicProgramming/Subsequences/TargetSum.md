@@ -86,3 +86,55 @@ class Solution {
 1. **Space Efficiency:** It uses $O(S)$ space (where $S$ is the target subset sum) instead of $O(n \times S)$ for a 2D table.
 2. **No Offset Logic:** You never have to deal with negative indices, `totalSum` offsets, or boundary guards for negative values.
 3. **Speed:** By transforming it into a 1D DP array, you significantly reduce memory allocation and cache misses, making it the most performant solution for this problem.
+
+---
+
+To understand why the number of expressions equals the number of subsets, let's break down the logic of how we assign symbols.
+
+### 1. The Partitioning Concept
+
+Every element in your array `nums` must be assigned either a `+` or a `-`. This effectively partitions your array into two groups:
+
+* **Group P:** Numbers assigned a `+` sign.
+* **Group N:** Numbers assigned a `-` sign.
+
+The total sum of all numbers is `S = P + N`.
+The target equation is `P - N = target`.
+
+### 2. The Substitution
+
+If we want to find the number of ways to assign signs, we are essentially looking for the number of ways to pick a subset of numbers to form **Group P** such that the condition `P - N = target` is satisfied.
+
+We know:
+
+1. $N = S - P$
+2. Substitute this into the target equation: $P - (S - P) = \text{target}$
+3. Simplify: $2P - S = \text{target}$
+4. Rearrange: $2P = \text{target} + S$
+5. Final result: $P = \frac{\text{target} + S}{2}$
+
+### 3. The "Aha!" Moment
+
+What this math tells us is:
+**Every valid assignment of `+` and `-` signs corresponds uniquely to a specific subset of `nums` that sums up to $P$.**
+
+* If you decide which numbers go into **Group P**, the remaining numbers *must* go into **Group N**.
+* Therefore, choosing the subset **Group P** is equivalent to choosing which numbers get the `+` sign.
+* Once you have picked the subset for **Group P**, there is **exactly one way** to assign the signs for all numbers (all elements in the subset get `+`, all elements outside the subset get `-`).
+
+### Example Walkthrough
+
+`nums = [1, 1, 1, 1, 1]`, `target = 3`, `S = 5`
+
+* $P = (3 + 5) / 2 = 4$
+* We are now looking for how many ways we can choose a subset of `[1, 1, 1, 1, 1]` that sums to **4**.
+* Since there are five `1`s, the only way to sum to `4` is to pick exactly four of the `1`s.
+* There are $\binom{5}{4} = 5$ ways to choose four `1`s out of five.
+* Each of those 5 ways corresponds to exactly one of the original expressions:
+* Pick indices `{0, 1, 2, 3}` → `+1+1+1+1-1`
+* Pick indices `{0, 1, 2, 4}` → `+1+1+1-1+1`
+* ...and so on.
+
+
+
+**The "Number of Ways" to reach the target is mathematically identical to the "Number of Subsets" that sum to $P$.**   
