@@ -112,3 +112,69 @@ You probably thought of a greedy approach because it is exactly what cashiers do
 Greedy algorithms work perfectly for real-world currencies (like US Dollars or Euros) because those denominations (1, 5, 10, 25) form a **canonical coin system**. In a canonical system, the math guarantees that the greedy choice will always yield the optimal result.
 
 However, LeetCode and technical interviews will always feed the algorithm arbitrary, non-canonical arrays to explicitly break greedy implementations and force you to use Dynamic Programming or BFS.
+
+
+---
+
+Great question! The word **"combinations"** here is the single most important distinction between **Coin Change II** and standard **Coin Change (I)** or permutation problems.
+
+---
+
+### What "Combinations" Means Here
+
+"Combinations" means **order does NOT matter**.
+
+If you pick `[1, 2, 2]` to make `5`, that is considered **the exact same combination** as `[2, 1, 2]` or `[2, 2, 1]`. They count as **$1$ unique way**, not $3$.
+
+In contrast, if a problem asks for **permutations** (or "distinct sequences"), then `[1, 2, 2]`, `[2, 1, 2]`, and `[2, 2, 1]` would count as **$3$ different ways**.
+
+---
+
+### Key Differences: Coin Change I vs. Coin Change II
+
+| Feature | Coin Change I (Min Coins) | **Coin Change II (This Problem)** |
+| --- | --- | --- |
+| **Goal** | Find the **minimum number** of coins to reach `amount`. | Find the **total number of unique combinations** to reach `amount`. |
+| **Question Asked** | *"What's the fewest coins I can use?"* | *"In how many distinct ways can I select coins?"* |
+| **Output Type** | Single minimum count (e.g., `2` coins). | Total ways count (e.g., `4` combinations). |
+| **Duplicate Sets?** | Doesn't matter — it just seeks the shortest path. | **Strictly forbidden** — order doesn't create new options. |
+
+---
+
+### Why Loop Order Prevents Duplicate Combinations
+
+In Dynamic Programming, the order of your nested loops decides whether you are counting **combinations** (order doesn't matter) or **permutations** (order matters):
+
+#### 1. Combinations (Coin Change II)
+
+```java
+// OUTER LOOP: Coins | INNER LOOP: Amount
+for (int coin : coins) {
+    for (int j = coin; j <= amount; j++) {
+        dp[j] += dp[j - coin];
+    }
+}
+
+```
+
+* **Why it works:** You process coin `1` completely for all amounts, *then* move to coin `2`, *then* coin `5`. Because you only move forward through the `coins` array, you naturally force an ordered pick (e.g., all `1`s first, then `2`s, then `5`s). This completely eliminates duplicate arrangements like `[2, 1]` vs `[1, 2]`.
+
+#### 2. Permutations (Different Problem)
+
+```java
+// OUTER LOOP: Amount | INNER LOOP: Coins
+for (int j = 1; j <= amount; j++) {
+    for (int coin : coins) {
+        if (j >= coin) {
+            dp[j] += dp[j - coin];
+        }
+    }
+}
+
+```
+
+* **Why this is different:** At *every amount*, you try *every single coin*. This allows picking a `2` first and then a `1` later, effectively counting `[1, 2]` and `[2, 1]` as two separate solutions.
+
+---
+
+> **Takeaway:** For **Coin Change II**, keeping `coins` on the outer loop guarantees that every valid set of coins is only counted **once**, regardless of the order you might pick them in real life.
