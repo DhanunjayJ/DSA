@@ -70,3 +70,78 @@ In a standard 2D Knapsack DP table, calculating the current row `dp[i]` only eve
 
 * **Time Complexity:** $O(N \times \text{capacity})$ (Remains the same mathematically, but runs much faster in practice without recursion overhead).
 * **Space Complexity:** $O(\text{capacity})$ (Down from $O(N \times \text{capacity})$ + call stack).
+
+
+---
+
+It all comes down to **which version of the DP table you are reading from**—the *current* item's updated state or the *previous* item's state.
+
+When we compress the 2D DP array into a 1D array to save space, running the loop **backward** prevents an item from "re-using" itself in the same turn.
+
+---
+
+## The Core Concept
+
+In 0/1 Knapsack, when considering an item with weight $W$ and value $V$, the transition formula is:
+
+$$dp[\text{cap}] = \max(dp[\text{cap}], dp[\text{cap} - W] + V)$$
+
+* **$dp[\text{cap}]$** is the max value for capacity $\text{cap}$.
+* **$dp[\text{cap} - W]$** represents the max value for the *remaining* weight capacity after taking this item.
+
+---
+
+## Forward Loop vs. Backward Loop (Visual Breakdown)
+
+Imagine we have an item with **Weight = 2** and **Value = 10**.
+
+### Scenario A: Forward Loop (`cap = 2` to `W_max`)
+
+If you iterate **forward**, smaller capacities get updated **first**:
+
+```
+Initial 1D Array: [0, 0, 0, 0, 0, 0]  (Capacities 0 to 5)
+
+1. At cap = 2: 
+   dp[2] = max(dp[2], dp[2 - 2] + 10) = max(0, 0 + 10) = 10
+   Array: [0, 0, 10, 0, 0, 0]
+
+2. At cap = 4:
+   dp[4] = max(dp[4], dp[4 - 2] + 10) = max(0, dp[2] + 10)
+                                      = max(0, 10 + 10) = 20  <-- BUG!
+   Array: [0, 0, 10, 0, 20, 0]
+
+```
+
+> **What happened?** When calculating `dp[4]`, it checked `dp[2]`. But `dp[2]` was **already updated** in the current loop to include the item once! Adding $V$ again meant taking the item a **second time**. This is **Unbounded Knapsack**.
+
+---
+
+### Scenario B: Backward Loop (`cap = W_max` down to `2`)
+
+If you iterate **backward**, larger capacities read from values that **haven't been touched yet** in this item's pass:
+
+```
+Initial 1D Array: [0, 0, 0, 0, 0, 0]  (Capacities 0 to 5)
+
+1. At cap = 4:
+   dp[4] = max(dp[4], dp[4 - 2] + 10) = max(0, dp[2] + 10)
+                                      = max(0, 0 + 10) = 10   <-- Fresh value!
+   Array: [0, 0, 0, 0, 10, 0]
+
+2. At cap = 2:
+   dp[2] = max(dp[2], dp[2 - 2] + 10) = max(0, 0 + 10) = 10
+   Array: [0, 0, 10, 0, 10, 0]
+
+```
+
+> **Why did this work?** When `dp[4]` looked at `dp[2]`, `dp[2]` still held the value from the **previous item's row**. It hadn't been updated by the current item yet. Thus, the item was used **at most once**.
+
+---
+
+## Quick Summary Rule
+
+| Loop Direction | What `dp[cap - W]` holds | Problem Type |
+| --- | --- | --- |
+| **Forward** (`2` $\to$ `W_max`) | **Updated value** (Current item included) | **Unbounded Knapsack** (Pick infinite times) |
+| **Backward** (`W_max` $\to$ `2`) | **Old value** (Previous items only) | **0/1 Knapsack** (Pick at most once) |
