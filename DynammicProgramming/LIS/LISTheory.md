@@ -212,80 +212,78 @@ public class Solution {
 * $n$ elements processed $\times$ $O(\log n)$ binary search per element = **$O(n \log n)$ total time**.
 
 ---
+### Why Greedy + Binary Search Breaks Sequence Reconstruction
 
-To reconstruct the actual sequence (and not just its length), we need to track two additional pieces of information as we iterate:
+The binary search technique works for finding the **length** of the LIS because it aggressively overwrites `tailIndices` with smaller elements to keep tails minimal for *future* potential sequences.
 
-1. **`parent` array:** For every element at index `i` in `nums`, store the index of the previous element that came before it in the subsequence.
-2. **`tailIndices` array:** Instead of storing raw values in `tails`, store the **indices** of those elements in `nums`.
+However, when an element gets overwritten in `tailIndices`, **the parent-child history gets corrupted**.
 
-When we finish the loop, we simply trace backward from the index of the last element of `tails` using our `parent` pointers to rebuild the LIS.
+Consider `arr = [0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15]`:
+
+1. When `8` is processed, `tailIndices` has `[0, 8]`.
+2. When `4` arrives, binary search overwrites `8` with `4` because `4 < 8`.
+3. Later elements that build off `4` will set their `parent` pointer to `4`. But elements that *already* built off `8` earlier are left stranded or end up pointing to overwritten indices that no longer represent a valid strictly increasing ordering from left to right!
+
+While there are complex workarounds to patch this (like storing full history trees), **this is why standard Dynamic Programming $O(n^2)$ is the universal standard for reconstructing the LIS sequence.**
 
 ---
 
-## Java Implementation with Reconstruction
+### The Clean $O(n^2)$ Solution (Guaranteed Correct)
+
+In the standard DP approach:
+
+1. `dp[i]` stores the length of LIS ending at index `i`.
+2. `parent[i]` stores the index of the element that comes immediately before `arr[i]`.
+3. We track `maxIndex` (the index where the maximum overall length ends) to start our reconstruction cleanly.
 
 ```java
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
+import java.util.Arrays;
 
-public class Solution {
-    public List<Integer> getLIS(int[] nums) {
-        if (nums == null || nums.length == 0) {
+class Solution {
+    public ArrayList<Integer> getLIS(int arr[]) {
+        if (arr == null || arr.length == 0) {
             return new ArrayList<>();
         }
 
-        int n = nums.length;
-
-        // tailIndices[i] stores the index in `nums` of the smallest tail of LIS of length (i + 1)
-        int[] tailIndices = new int[n];
-
-        // parent[i] stores the index in `nums` of the predecessor of nums[i] in the LIS
+        int n = arr.length;
+        int[] dp = new int[n];
         int[] parent = new int[n];
 
-        int length = 0; // Length of LIS found so far
+        Arrays.fill(dp, 1);
+        Arrays.fill(parent, -1);
 
+        int maxLength = 1;
+        int maxIndex = 0;
+
+        // Standard DP: Find the best preceding element for each arr[i]
         for (int i = 0; i < n; i++) {
-            int num = nums[i];
-
-            // Binary search to find the insertion position in `tailIndices`
-            int left = 0, right = length;
-            while (left < right) {
-                int mid = left + (right - left) / 2;
-                if (nums[tailIndices[mid]] < num) {
-                    left = mid + 1;
-                } else {
-                    right = mid;
+            for (int j = 0; j < i; j++) {
+                if (arr[j] < arr[i]) {
+                    if (dp[j] + 1 > dp[i]) {
+                        dp[i] = dp[j] + 1;
+                        parent[i] = j; // Record valid parent link
+                    }
                 }
             }
 
-            // `left` is the position where `nums[i]` should be placed in `tailIndices`
-            tailIndices[left] = i;
-
-            // Link `nums[i]` to its predecessor (the element ending the sequence of length `left`)
-            if (left > 0) {
-                parent[i] = tailIndices[left - 1];
-            } else {
-                parent[i] = -1; // First element of a sequence has no predecessor
-            }
-
-            // If we placed `i` at the end, the max length increases
-            if (left == length) {
-                length++;
+            // Track where the global longest sequence ends
+            if (dp[i] > maxLength) {
+                maxLength = dp[i];
+                maxIndex = i;
             }
         }
 
-        // --- Backtracking Step ---
-        // Reconstruct the LIS starting from the end of the longest sequence
-        List<Integer> result = new ArrayList<>();
-        int currIndex = tailIndices[length - 1]; // Index of the last element in LIS
+        // Backtrack to reconstruct the sequence
+        ArrayList<Integer> result = new ArrayList<>();
+        int curr = maxIndex;
 
-        while (currIndex != -1) {
-            result.add(nums[currIndex]);
-            currIndex = parent[currIndex]; // Walk backward via parent pointers
+        while (curr != -1) {
+            result.add(arr[curr]);
+            curr = parent[curr];
         }
 
-        // Since we collected elements backwards, reverse to get the correct order
         Collections.reverse(result);
         return result;
     }
@@ -293,22 +291,7 @@ public class Solution {
 
 ```
 
----
+### Why this works 100% of the time:
 
-## How the Backtracking Works (Visualized)
-
-Suppose `nums = [10, 9, 2, 5, 3, 7]`:
-
-* When `3` is added, its predecessor is set to the index of `2` (`parent[idx_of_3] = idx_of_2`).
-* When `7` is added, it extends the sequence ending in `3`, so its predecessor is set to the index of `3` (`parent[idx_of_7] = idx_of_3`).
-
-At the end of processing:
-
-1. The last element in `tailIndices` points to `7`.
-2. We follow parent links: `7` $\rightarrow$ `3` $\rightarrow$ `2` $\rightarrow$ `-1` (stop).
-3. Reversing `[7, 3, 2]` gives the valid LIS: **`[2, 3, 7]`**.
-
-### Complexity
-
-* **Time Complexity:** $O(n \log n)$ to find sequence links + $O(\text{LIS length})$ to reconstruct = **$O(n \log n)$**.
-* **Space Complexity:** $O(n)$ for `tailIndices`, `parent`, and the output list.
+* **No overwriting:** `parent[i]` is set once by checking all prior elements $j < i$ where `arr[j] < arr[i]`.
+* **Lexicographical / Valid paths:** It guarantees that every element in the path actually came before the next element in the original array index order.
