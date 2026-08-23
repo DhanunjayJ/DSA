@@ -82,6 +82,7 @@ class Main {
 }
 
 // doing the same using the / and %
+//Element Encoding Pattern
 
 // Java Code to Rearrange Array Elements
 import java.util.Arrays;
