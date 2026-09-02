@@ -51,3 +51,42 @@ class Solution {
         return Math.max(maxLeft,maxRight);
     }
 }
+
+//using kadanes algo
+
+class Solution {
+    public int maxProduct(int[] nums) {
+
+        //using kadanes algorithm.
+        
+        int result = nums[0];
+        int currMax = nums[0];
+        int currMin = nums[0];
+
+        for(int i=1;i<nums.length;i++){
+            int num = nums[i];
+
+            //if the number is negative multiplying 
+            //flips the maximum and miniumum.
+            if(num<0){
+                int temp = currMin;
+                currMin = currMax;
+                currMax = temp;
+            }
+
+            //we matintain both min and max's so that when
+            // the num becomes -ve the values changes.
+            // at at thime the min cecmoes the max. 
+
+            // when there is zero the curre max and min will
+            //cbcome zeor, but when the next values comes
+            //it will take the max as the num. 
+            currMin = Math.min(num,currMin*num);
+            currMax = Math.max(num,currMax*num);
+
+            result = Math.max(currMax,result);
+        }
+
+        return result;
+    }
+}
