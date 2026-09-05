@@ -297,5 +297,125 @@ That is the genius of the Pigeonhole Principle here: by making the buckets small
 
 ---
 
+It is completely normal to be skeptical of this! It sounds like magic—how can we just *ignore* what happens inside the buckets without missing the biggest gap?
+
+Let’s put it to the test with a concrete, hands-on dry run using an irregular array, and look at the **physical physics** of why an intra-bucket gap can never be the winner.
+
+---
+
+### ## The Dry Run: `nums = [2, 5, 6, 20, 25]`
+
+* Total elements ($N$) = `5`
+* Minimum value = `2`
+* Maximum value = `25`
+* Total distance from min to max = $25 - 2 = 23$
+
+#### Step 1: Calculate the Bucket Size
+
+We have 5 numbers, which means there are $5 - 1 = 4$ gaps between them.
 
 
+$$\text{bucket\_size} = \frac{23}{4} = 5.75 \rightarrow \text{rounded down to } 5$$
+
+This means **every single bucket is a box that spans a width of 5 units.**
+
+* Box 0 covers values from `2` to `7`
+* Box 1 covers values from `8` to `13`
+* Box 2 covers values from `14` to `19`
+* Box 3 covers values from `20` to `25`
+
+---
+
+#### Step 2: Drop the Numbers Into the Boxes
+
+Let's see where our numbers land:
+
+* `2`, `5`, and `6` all fall into **Box 0** (because they are all between 2 and 7).
+* `20` falls into **Box 3**.
+* `25` falls into **Box 4** (or the edge of Box 3).
+
+---
+
+#### Step 3: Let's Check Inside Box 0 (The Intra-Bucket Gaps)
+
+Box 0 contains the numbers `2`, `5`, and `6`. If we sort them inside this box, what are the gaps between them?
+
+* Gap between 2 and 5 = **3**
+* Gap between 5 and 6 = **1**
+
+Now, look at the **true maximum gap** of the entire array. If you look at the sorted array `[2, 5, 6, 20, 25]`, the biggest gap is between `6` and `20`, which is:
+
+
+$$20 - 6 = \mathbf{14}$$
+
+---
+
+### ## Why couldn't the gap of 14 be *inside* a bucket?
+
+Look at Box 0 again. Box 0 is a box with a strict size limit of **5**.
+
+* **The Container Rule:** You cannot fit a distance of 14 inside a box that only spans 5 units. The numbers inside Box 0 (`2`, `5`, and `6`) are crammed into a 5-unit space, so their internal gaps (`3` and `1`) **must** be smaller than 5.
+* **The Pigeonhole Guarantee:** Because the total distance of 23 is split into 4 gaps, *at least one* gap in the whole array is guaranteed to be $\ge 5$ (in this case, our max gap is `14`).
+
+Since **every single intra-bucket gap is strictly limited by the bucket size (5)**, and the **true maximum gap (14) is way larger than the bucket size**, the true maximum gap **physically cannot fit inside any bucket**.
+
+### The Takeaway
+
+An intra-bucket gap is trapped inside a small box (size 5). The maximum gap is too big to fit in that box, so it *has* to be the jump *between* Box 0 and Box 3 (from 6 to 20).
+
+---
+The **Pigeonhole Principle** is a famous mathematical rule: *If you have more pigeons than pigeonholes, at least one pigeonhole must contain more than one pigeon.*
+
+In this specific problem, we flip it slightly to use a powerful guarantee:
+
+### The Pigeonhole Guarantee Here:
+
+> **If you have $n$ numbers and you divide their total range into $n - 1$ buckets, at least one bucket is GUARANTEED to be completely empty.**
+
+Let's see how this plays out with our big example from earlier:
+
+* We had **10 numbers** ($n = 10$).
+* We created **9 gaps** (which means we set up roughly $n - 1$ buckets).
+* Look back at the table: **Buckets 2, 3, 5, 6, and 7 were completely empty!**
+
+---
+
+### Why does an empty bucket solve the whole problem?
+
+Because of the Pigeonhole Principle forcing at least one bucket to be empty, it creates a physical "cliff" or gap in your number line:
+
+1. **You can't have numbers in an empty bucket.** That means there is a whole range of values where *no numbers exist*.
+2. When the sorted list of numbers hits that empty space, it has to **jump completely over it** to get to the next available number.
+3. Because it has to jump across empty space, that specific jump (**the inter-bucket gap**) is guaranteed to be larger than the bucket size.
+4. And because every intra-bucket gap is trapped inside a small box, **the true maximum gap will always be one of these cross-bucket jumps over an empty space.**
+
+### Summary
+
+The Pigeonhole Principle guarantees that **empty buckets will exist**. The existence of empty buckets guarantees that **large gaps must happen between buckets**. And that is why we can safely ignore everything inside the buckets and only look at the spaces *between* them!
+
+---
+
+To see how the **Pigeonhole Principle** guarantees empty buckets, let’s translate the classic math puzzle directly into our problem:
+
+* **The Pigeons:** Your $n$ numbers (e.g., 10 numbers = 10 pigeons).
+* **The Pigeonholes:** The buckets we create to span from `min` to `max`.
+
+### Why an Empty Bucket is Guaranteed
+
+Think about what happens when you spread your numbers across the buckets:
+
+1. **The Uniform Case (No empty buckets):** If your numbers were spaced **completely evenly** (like `[2, 4, 6, 8]`), every single bucket would catch exactly one number. In that rare case, every gap is identical, and there are **zero** empty buckets.
+2. **The Real/Messy Case (Empty buckets appear):** But what happens if your numbers are *not* evenly spaced—meaning some numbers are clumped tightly together, and others are far apart?
+* When numbers clump together, they squeeze into the same bucket (sharing a pigeonhole).
+* Because you only have $n$ numbers total, if multiple numbers pile into the early buckets, it leaves **no numbers left over** for the later ranges.
+* That wide-open space stretches across a whole section of the number line. Because no numbers exist in that range, **no numbers land in those buckets, leaving them completely empty.**
+
+
+
+### The Big Takeaway
+
+The Pigeonhole Principle tells us that if your array has a gap that is *larger* than the average bucket size, the numbers are forced to jump over a region. That skipped region results in **one or more empty buckets**.
+
+An empty bucket is essentially a **giant neon sign** saying: *"A massive gap happened right here, forcing us to leap over this space!"* That is why we only need to look at the boundaries right across those empty spaces to find our maximum gap.
+
+---

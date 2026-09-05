@@ -1,71 +1,51 @@
-class MaximumGap {
+class Solution {
     public int maximumGap(int[] nums) {
-
-        /*
-        here the core idea is to store the values in buckets.
-
-        the minimum bucket size is max-min/gap 
-
-        this give us the min gap.
-
-        since this si the min gap now the max gap between the numbers
-        will never lie in the bucket it self it lies
-        between the buckets so we only sotre the max and min value
-        of each bucket and get the max vlaues. of them. 
-
-        and compare the min and max vleus to get the max gap. 
         
-        */
-
         int n = nums.length;
-
+        
         if(n<2) return 0;
 
-        int minVal = nums[0];
-        int maxVal = nums[0];
+        int min = Integer.MAX_VALUE;
+        int max = Integer.MIN_VALUE;
 
         for(int num : nums){
-            minVal = Math.min(num,minVal);
-            maxVal = Math.max(num,maxVal);
+            min = Math.min(num,min);
+            max = Math.max(num,max);
         }
 
-        if(minVal==maxVal) return 0;
-        //get the min bucket size
-        int bucketSize = Math.max(1,(maxVal-minVal)/(n-1));
-        //how many buckets are needed is the gap/busket size +1 for the 
-        // non integer vallues safety.
-        int bucketCount = (maxVal-minVal)/bucketSize+1;
+        //min bucket size if the n elements are kept 
+        //evenly kept withing the gap max-min.
+        int bucketSize = Math.max(1,(max-min)/(n-1));
+        //get how many buckets are needed + 1 for saftey when the 
+        //max-min/bucketSize is non integer. + 1 
+        int bucketCount = (max-min)/bucketSize + 1;
+        //According to pigeion hole principle, since the gap
+        //is spaced evenly and the values are unevenly spreaded
+        //this makes atleast one bucket to left out. 
+        //If you have n numbers and you divide their total range into
+        //n - 1 buckets, at least one bucket is GUARANTEED to be
+        //completely empty.
+        int [] minBucket = new int[bucketCount];
+        int [] maxBucket = new int[bucketCount];
 
-        int [] bucketsMin = new int[bucketCount];
-        int [] bucketsMax = new int[bucketCount];
-        Arrays.fill(bucketsMin,Integer.MAX_VALUE);
-        Arrays.fill(bucketsMax,Integer.MIN_VALUE);
-
-        //we distribute numbers in to buckets since the the max
-        //gap will never be in side the bucket we only store the max
-        //min value of each bucket and then compare the neighbours buckets for the maxgap;
+        Arrays.fill(minBucket,Integer.MAX_VALUE);
+        Arrays.fill(maxBucket,Integer.MIN_VALUE);
 
         for(int num : nums){
-            int bucketIdx = (num-minVal)/bucketSize;
-            bucketsMin[bucketIdx] = Math.min(bucketsMin[bucketIdx],num);
-            bucketsMax[bucketIdx] = Math.max(bucketsMax[bucketIdx],num);
+            int bucketIdx = (num-min)/bucketSize;
+            minBucket[bucketIdx] = Math.min(minBucket[bucketIdx],num);
+            maxBucket[bucketIdx] = Math.max(maxBucket[bucketIdx],num);
         }
 
-        //scanning the buckets for the maxGap
         int maxGap = 0;
-        int prevMax = minVal;
+        int prevMax = min;
 
         for(int i=0;i<bucketCount;i++){
-            //if there are no numbers in this bucket then skip
-            if(bucketsMin[i]==Integer.MAX_VALUE){
-                continue;
-            }
-
-            maxGap = Math.max(maxGap,bucketsMin[i]-prevMax);
-            prevMax = bucketsMax[i];
+            if(minBucket[i]==Integer.MAX_VALUE) continue;
+            maxGap = Math.max(maxGap,minBucket[i]-prevMax);
+            prevMax = maxBucket[i];
         }
 
         return maxGap;
-
     }
 }
