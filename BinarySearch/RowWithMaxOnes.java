@@ -42,3 +42,48 @@ class Solution {
         return minRow;
     }
 };
+
+
+class Solution {
+    public int rowWithMax1s(int[][] arr) {
+        // code here
+        int n = arr.length;
+        int m = arr[0].length;
+        
+        //setting the minCol as the last col
+        int minCol = m-1;
+        //min row as the -1
+        int minRow = -1;
+        
+        for(int i=0;i<n;i++){
+            
+            int low = 0;
+            //settig the minCol as the best seen so far we dont'
+            //set it to m-1. although we could do it.
+            int high = minCol;
+            
+            while(low<=high){
+                
+                int mid = (low+high)/2;
+                
+                if(arr[i][mid]!=0){
+                    //when ever the mid vlaue is !=0 we update
+                    // the minrow and col values because. 
+                    //with the given space this is the first time
+                    // this came.
+                    minRow = i;
+                    minCol = mid-1;
+                    //search left;
+                    high = mid-1;
+                    
+                }else{
+                    
+                    low = mid+1;
+                    
+                }
+            }
+        }
+        
+        return minRow;
+    }
+};
