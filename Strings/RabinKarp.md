@@ -799,3 +799,232 @@ You now understand:
 2. The Prefix Hash Array ($O(N)$ space, arbitrary $[L\dots R]$ queries in $O(1)$).
 3. Why Double Hashing eliminates collisions.
 
+----
+
+You hit the exact question that every sharp developer asks when they first see that check!
+
+Here is the straightforward answer: **In the average case, it is $O(N + M)$, NOT $O(N \times M)$—because `text.startsWith(pattern, i)` almost never executes.**
+
+---
+
+### 1. Why Brute Force Takes $O(N \times M)$
+
+In brute force, you run character-by-character checks at **every single index**:
+
+```
+Window 0: Compare characters... (up to M operations)
+Window 1: Compare characters... (up to M operations)
+Window 2: Compare characters... (up to M operations)
+...
+Window N: Compare characters... (up to M operations)
+
+```
+
+Every single window incurs that cost. That is why brute force is strictly $O(N \times M)$.
+
+---
+
+### 2. What Rabin-Karp Actually Does
+
+In Rabin-Karp, the character-by-character check is **behind an `if` gate**:
+
+```java
+if (windowHash == patternHash) {
+    if (text.startsWith(pattern, i)) { // <--- ONLY runs when hashes match!
+        matches.add(i);
+    }
+}
+
+```
+
+Now ask: **How often is `windowHash == patternHash` true?**
+
+Only in two scenarios:
+
+1. **A genuine match:** The pattern actually exists at this position.
+2. **A hash collision (spurious hit):** Two different strings happen to produce the exact same remainder modulo $MOD$.
+
+#### How rare is a collision?
+
+If your modulo is $MOD = 10^9 + 7$, there are over **1,000,000,000** possible hash values.
+
+If the window text does *not* match your pattern, the probability that its hash accidentally equals `patternHash` is roughly:
+
+
+$$\frac{1}{MOD} \approx \frac{1}{10^9} = 0.000000001$$
+
+That means out of 100,000 windows:
+
+* In **99,999+ windows**, `windowHash != patternHash`. The `if` statement is `false` immediately in **$O(1)$ time**.
+* The character check (`startsWith`) is completely skipped!
+* `startsWith` only runs when there is an **actual match** (which is unavoidable because you need to report it) or on the astronomically rare chance of a collision.
+
+Therefore:
+
+
+$$\text{Total Time} = O(N) \times O(1) \text{ [for hash shifts]} + (\text{number of actual matches}) \times O(M)$$
+
+If the pattern appears a few times, total runtime is **$O(N + M)$**.
+
+---
+
+### 3. But Can an Adversary Force $O(N \times M)$? (The Worst Case)
+
+**Yes!** And this is the recognized theoretical flaw of basic Rabin-Karp:
+
+If an attacker knows your chosen $BASE$ and $MOD$, they can craft a malicious input where **every single window produces the exact same hash as the pattern**, even though the characters are different.
+
+* If every window collides, `windowHash == patternHash` triggers at every step.
+* `startsWith` runs at all $N$ windows.
+* The algorithm degrades to **$O(N \times M)$**.
+
+---
+
+### 4. How Modern Competitive Programmers & Systems Fix This
+
+In practice (and in competitive programming / LeetCode), people do one of two things:
+
+#### Option A: Double Hashing (Drop `startsWith` entirely!)
+
+Use two large prime modulos (e.g., $10^9+7$ and $10^9+9$):
+
+```java
+if (windowHash1 == patternHash1 && windowHash2 == patternHash2) {
+    matches.add(i); // No text.startsWith needed!
+}
+
+```
+
+The chance of two different strings colliding under *both* modulos simultaneously is:
+
+
+$$\frac{1}{10^9 \times 10^9} = \frac{1}{10^{18}}$$
+
+
+With $10^{18}$ odds, you will literally never see a collision in your lifetime. You can **omit the character comparison completely**, guaranteeing strict $O(N)$ runtime.
+
+#### Option B: Randomize the Base at Runtime
+
+Instead of hardcoding `BASE = 256`, pick a random base at runtime:
+
+```java
+long BASE = ThreadLocalRandom.current().nextLong(256, MOD - 1);
+
+```
+
+An adversary cannot craft worst-case test cases if they don't know the base your program rolled at runtime!
+
+---
+
+### The Big Takeaway
+
+* **Brute Force:** Checks characters on *every* window $\implies$ always $O(N \times M)$.
+* **Rabin-Karp:** The hash acts as a **$O(1)$ filter** that rejects $99.9999999\%$ of non-matching windows instantly. `startsWith` only acts as a safety confirmation on hits.
+* If you want **guaranteed, 100% collision-free, deterministic linear time without any verification checks**, that is the reason algorithms like **KMP** and the **Z-Algorithm** were invented!
+
+
+----
+
+The difference comes purely down to **1-based indexing (with a dummy $0$ at index $0$) vs. 0-based indexing**.
+
+Let's look at standard prefix sums first, and then translate the exact same indexing shift to prefix hashes.
+
+---
+
+### 1. The Prefix Sum Comparison
+
+Suppose the array has size $N$.
+
+#### Style A: 0-based `psum` (size $N$)
+
+Here, `psum[i]` stores the sum of elements from index $0$ through index $i$.
+
+
+$$\text{sum}(L\dots R) = \text{psum}[R] - \text{psum}[L - 1]$$
+
+* **Edge case:** When $L = 0$, $L - 1 = -1$, which causes an `ArrayIndexOutOfBoundsException`. You must write:
+```java
+int sum = psum[R] - (L > 0 ? psum[L - 1] : 0);
+
+```
+
+
+
+#### Style B: 1-based `prefixSum` (size $N + 1$)
+
+Here, index $0$ is an empty dummy (`prefixSum[0] = 0`), and `prefixSum[i]` stores the sum of the first $i$ elements:
+
+
+$$\text{sum}(L\dots R) = \text{prefixSum}[R + 1] - \text{prefixSum}[L]$$
+
+* **Why people love this:** When $L = 0$, you subtract `prefixSum[0]` (which is `0`). **No `if (L > 0)` check is needed.**
+
+---
+
+### 2. How the Hash Formula Changes
+
+Now apply your 0-based style:
+
+* Let `phash[i]` be the hash of prefix $S[0\dots i]$ (size $N$, strictly 0-indexed).
+* Length of the substring $S[L\dots R]$ is:
+
+$$\text{len} = R - L + 1$$
+
+
+
+#### If $L > 0$:
+
+The part you need to remove is the prefix $S[0\dots L-1]$.
+That prefix has value `phash[L - 1]`.
+
+Because `phash[R]` contains terms multiplied up to $B^R$, the prefix $S[0\dots L-1]$ was shifted to the left by the remaining length ($\text{len} = R - L + 1$).
+
+So the formula with 0-based `phash` is:
+
+
+$$\text{hash}(L\dots R) = \Big( \text{phash}[R] - \big(\text{phash}[L - 1] \times B^{\text{len}}\big) \Big) \pmod{MOD}$$
+
+#### If $L = 0$:
+
+There is nothing to remove! The hash is simply:
+
+
+$$\text{hash}(0\dots R) = \text{phash}[R]$$
+
+---
+
+### Side-by-Side Comparison
+
+| Component | Style A (0-based arrays, size $N$) | Style B (1-based arrays, size $N+1$) |
+| --- | --- | --- |
+| **Sum Formula** | $\text{psum}[R] - \text{psum}[L-1]$ | $\text{prefixSum}[R+1] - \text{prefixSum}[L]$ |
+| **Sum Edge Case** | Needs `L > 0 ? ... : 0` check | Handled automatically by `prefixSum[0] = 0` |
+| **Hash Formula** | $\text{phash}[R] - \left(\text{phash}[L-1] \times B^{\text{len}}\right)$ | $\text{prefixHash}[R+1] - \left(\text{prefixHash}[L] \times B^{\text{len}}\right)$ |
+| **Hash Edge Case** | Needs `L > 0` check | Handled automatically by `prefixHash[0] = 0` |
+
+---
+
+### In Java Code:
+
+If you prefer the `psum[R] - psum[L - 1]` style, here is how the query method looks:
+
+```java
+public long getHash(int L, int R) {
+    int len = R - L + 1;
+    
+    long currentHash = phash[R];
+    
+    if (L > 0) {
+        long prefixToRemove = (phash[L - 1] * power[len]) % MOD;
+        currentHash = (currentHash - prefixToRemove) % MOD;
+        if (currentHash < 0) {
+            currentHash += MOD;
+        }
+    }
+    
+    return currentHash;
+}
+
+```
+
+The math is 100% identical. The only reason competitive programmers use `prefixHash[R + 1] - prefixHash[L] * power[len]` is to **skip the `if (L > 0)` branch completely** by making index `0` represent an empty string with hash `0`.
