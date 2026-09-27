@@ -593,3 +593,293 @@ if (i + z[i] - 1 > r) {
 
 
 ---
+Here is why we already know those 3 characters match, without comparing them again.
+
+Look at the two facts established before reaching $i = 8$:
+
+---
+
+### Fact 1: What the Z-box $[L, R] = [4, 10]$ tells us
+
+When $i = 4$, the algorithm matched $7$ characters:
+
+
+$$S[4\dots 10] = \text{"a a b x a a b"}$$
+
+Because it matched a prefix of length 7, this entire slice is an **exact clone** of the prefix $S[0\dots 6]$:
+
+```
+Prefix:    S[0...6]   =  [ a   a   b   x   a   a   b ]
+                          0   1   2   3   4   5   6
+                          |   |   |   |   |   |   |   (Identical characters!)
+Z-box:     S[4...10]  =  [ a   a   b   x   a   a   b ]
+                          4   5   6   7   8   9  10
+                                          ^       ^
+                                          i=8     R=10
+
+```
+
+Notice where index $i = 8$ sits inside this box:
+
+* Index $8$ corresponds to prefix index $4$ ($k = i - L = 8 - 4 = 4$).
+* From index $8$ to the end of the box ($R = 10$), there are **3 characters**:
+* $S[8] == S[4] == \text{'a'}$
+* $S[9] == S[5] == \text{'a'}$
+* $S[10] == S[6] == \text{'b'}$
+
+
+
+So the characters from index $8$ to $10$ are **`"a a b"`**.
+
+---
+
+### Fact 2: What $Z[k] = Z[4] = 7$ tells us
+
+Now look at the mirror position at the beginning: $k = 4$.
+We already computed $Z[4] = 7$ earlier.
+
+What does $Z[4] = 7$ mean?
+It means starting at index $4$, the string matches the **first 7 characters of the entire string ($S[0\dots 6]$)**!
+
+So the characters starting at index $4$ begin with:
+
+* $S[4] == S[0] == \text{'a'}$
+* $S[5] == S[1] == \text{'a'}$
+* $S[6] == S[2] == \text{'b'}$
+
+---
+
+### Putting the Two Facts Together
+
+Connect the chain of equalities:
+
+1. From **Fact 1**:
+
+$$S[8\dots 10] \text{ is identical to } S[4\dots 6]$$
+
+
+2. From **Fact 2**:
+
+$$S[4\dots 6] \text{ is identical to } S[0\dots 2] \text{ (the string's prefix!)}$$
+
+
+
+Therefore, by basic substitution:
+
+
+$$S[8\dots 10] \text{ is identical to } S[0\dots 2]$$
+
+```
+Prefix of string:     S[0...2]   =   a   a   b
+                                     |   |   |  (Equal by Z[4] = 7)
+Middle slice:         S[4...6]   =   a   a   b
+                                     |   |   |  (Equal by Z-box [4, 10])
+Our current window:   S[8...10]  =   a   a   b
+
+```
+
+Those are $3$ characters:
+
+
+$$\text{length} = R - i + 1 = 10 - 8 + 1 = 3$$
+
+Because of transitivity:
+
+
+$$\text{If } A == B \text{ and } B == C, \text{ then } A == C$$
+
+We are guaranteed that $S[8\dots 10]$ matches the first 3 characters of the string ($S[0\dots 2]$) **without reading a single character**.
+
+---
+
+### Why Can't We Just Set $Z[8] = 7$?
+
+$Z[4]$ was $7$, so why can't we say $Z[8] = 7$?
+
+Because our Z-box ends at $R = 10$.
+
+* We only know for sure what characters exist up to index $10$.
+* What lies at index $11$ ($S[11]$)? The current Z-box $[4, 10]$ has never checked index $11$.
+* That is why we can only guarantee the match **up to $R$** (which is 3 characters).
+* To see if the match continues for a 4th or 5th character, we must inspect characters starting from index $11$ onward.
+
+---
+
+Here is why we already know those 3 characters match, without comparing them again.
+
+Look at the two facts established before reaching $i = 8$:
+
+---
+
+### Fact 1: What the Z-box $[L, R] = [4, 10]$ tells us
+
+When $i = 4$, the algorithm matched $7$ characters:
+
+
+$$S[4\dots 10] = \text{"a a b x a a b"}$$
+
+Because it matched a prefix of length 7, this entire slice is an **exact clone** of the prefix $S[0\dots 6]$:
+
+```
+Prefix:    S[0...6]   =  [ a   a   b   x   a   a   b ]
+                          0   1   2   3   4   5   6
+                          |   |   |   |   |   |   |   (Identical characters!)
+Z-box:     S[4...10]  =  [ a   a   b   x   a   a   b ]
+                          4   5   6   7   8   9  10
+                                          ^       ^
+                                          i=8     R=10
+
+```
+
+Notice where index $i = 8$ sits inside this box:
+
+* Index $8$ corresponds to prefix index $4$ ($k = i - L = 8 - 4 = 4$).
+* From index $8$ to the end of the box ($R = 10$), there are **3 characters**:
+* $S[8] == S[4] == \text{'a'}$
+* $S[9] == S[5] == \text{'a'}$
+* $S[10] == S[6] == \text{'b'}$
+
+
+
+So the characters from index $8$ to $10$ are **`"a a b"`**.
+
+---
+
+### Fact 2: What $Z[k] = Z[4] = 7$ tells us
+
+Now look at the mirror position at the beginning: $k = 4$.
+We already computed $Z[4] = 7$ earlier.
+
+What does $Z[4] = 7$ mean?
+It means starting at index $4$, the string matches the **first 7 characters of the entire string ($S[0\dots 6]$)**!
+
+So the characters starting at index $4$ begin with:
+
+* $S[4] == S[0] == \text{'a'}$
+* $S[5] == S[1] == \text{'a'}$
+* $S[6] == S[2] == \text{'b'}$
+
+---
+
+### Putting the Two Facts Together
+
+Connect the chain of equalities:
+
+1. From **Fact 1**:
+
+$$S[8\dots 10] \text{ is identical to } S[4\dots 6]$$
+
+
+2. From **Fact 2**:
+
+$$S[4\dots 6] \text{ is identical to } S[0\dots 2] \text{ (the string's prefix!)}$$
+
+
+
+Therefore, by basic substitution:
+
+
+$$S[8\dots 10] \text{ is identical to } S[0\dots 2]$$
+
+```
+Prefix of string:     S[0...2]   =   a   a   b
+                                     |   |   |  (Equal by Z[4] = 7)
+Middle slice:         S[4...6]   =   a   a   b
+                                     |   |   |  (Equal by Z-box [4, 10])
+Our current window:   S[8...10]  =   a   a   b
+
+```
+
+Those are $3$ characters:
+
+
+$$\text{length} = R - i + 1 = 10 - 8 + 1 = 3$$
+
+Because of transitivity:
+
+
+$$\text{If } A == B \text{ and } B == C, \text{ then } A == C$$
+
+We are guaranteed that $S[8\dots 10]$ matches the first 3 characters of the string ($S[0\dots 2]$) **without reading a single character**.
+
+---
+
+### Why Can't We Just Set $Z[8] = 7$?
+
+$Z[4]$ was $7$, so why can't we say $Z[8] = 7$?
+
+Because our Z-box ends at $R = 10$.
+
+* We only know for sure what characters exist up to index $10$.
+* What lies at index $11$ ($S[11]$)? The current Z-box $[4, 10]$ has never checked index $11$.
+* That is why we can only guarantee the match **up to $R$** (which is 3 characters).
+* To see if the match continues for a 4th or 5th character, we must inspect characters starting from index $11$ onward.
+
+---
+
+You hit the nail on the head, but just have **one small sign flip**!
+
+Let's clarify which way the comparison goes:
+
+* When **$\text{remaining} > Z[k]$**: $Z[k]$ fits completely **inside** the box. It does *not* hit the edge $R$. So we set **$Z[i] = Z[k]$**.
+* When **$Z[k] \ge \text{remaining}$**: The match hits or tries to go past the wall $R$. We don't know what is past $R$, but up to the wall is safe. So we set **$Z[i] = \text{remaining}$**, and then check whatever lies past $R$!
+
+---
+
+### Think of the Z-box like a "Safe Zone" with a Fog of War
+
+Imagine index $R$ is the edge of a map.
+
+```
+[0 . . . . . . . . . . . . . . .]
+[L . . . . . . . . . . . . . R] | ??? (FOG OF WAR past R)
+               ^             ^
+               i             R
+               [--remaining--]
+
+```
+
+Everything up to $R$ is **known territory** that is guaranteed to match the prefix of the string. Everything past $R$ is covered in **fog**—we haven't looked there yet.
+
+At position $i$, the distance to the edge of the safe zone is:
+
+
+$$\text{remaining} = R - i + 1$$
+
+Now, we look up our cheat sheet: the mirror copy near the beginning of the string has score $Z[k]$.
+
+---
+
+### Only Two Scenarios Happen:
+
+#### Scenario A: $Z[k] < \text{remaining}$ (The match is strictly INSIDE the safe zone)
+
+* Example: There are 5 safe characters left to $R$ ($\text{remaining} = 5$), but $Z[k] = 2$.
+* $Z[k] = 2$ means: *"The mirror copy matched 2 letters, and on the 3rd letter, it **failed**."*
+* Since that 3rd letter is still inside our safe zone (before reaching the fog), it **must fail here too**!
+* So the answer is definitively **$Z[i] = Z[k] = 2$**. No checks needed, done!
+
+---
+
+#### Scenario B: $Z[k] \ge \text{remaining}$ (The match HITS the wall at $R$)
+
+* Example: There are only 3 safe characters left to $R$ ($\text{remaining} = 3$), but $Z[k] = 7$.
+* Can we say $Z[i] = 7$? **No!** Because after 3 characters, we hit $R$ and step into the **fog**.
+* But can we say the first 3 characters definitely match? **Yes!** Because they are inside the safe zone, and the safe zone matches the string's prefix.
+* So we say: **"I am 100% sure about 3 characters ($Z[i] = \text{remaining} = 3$)."**
+* Then we walk into the fog (starting from $R + 1$) and check character-by-character to see if the streak keeps going!
+
+---
+
+### That is the Entire Logic in 1 Line of Code:
+
+```java
+z[i] = Math.min(r - i + 1, z[i - l]);
+
+```
+
+* If $Z[k]$ is smaller $\implies$ take $Z[k]$.
+* If $\text{remaining}$ is smaller $\implies$ take $\text{remaining}$ (up to the wall $R$).
+
+After this single line, run the `while` loop to see if the match continues past the wall into the fog!
+
