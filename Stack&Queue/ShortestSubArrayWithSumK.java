@@ -1,0 +1,32 @@
+class Solution {
+    public int shortestSubarray(int[] nums, int k) {
+        //[84,-37,32,40,95] 167
+        int n = nums.length;
+        int [] psum = new int[n+1];
+        //psum[i] = it is the sum of everything from index 0 up to index i - 1:
+        for(int i=0;i<n;i++){
+            psum[i+1] = nums[i]+psum[i];
+        }
+        Deque<Integer> q = new ArrayDeque<>();
+        int min = Integer.MAX_VALUE;
+        for(int j=0;j<=n;j++){
+            // check if the if current prefix create a valid sub array. 
+            while(!q.isEmpty() && psum[j]-psum[q.peekFirst()]>=k){
+                //we poll this value from the array, since it won't
+                //be giving us much better answer in the future if we 
+                // keep this index. 
+                min = Math.min(j-q.pollFirst(),min);
+            }
+            //if the currsum <= psum[last]
+            //then for the future sum say x.
+            //will always yeild better higher chances
+            // of p[x]-p[j]>=x over the last
+            // and alos it will give better shorter length.
+            while(!q.isEmpty() && psum[j]<=psum[q.peekLast()]){
+                q.pollLast();
+            }
+            q.addLast(j);
+        }
+        return min==Integer.MAX_VALUE ? -1 : min;
+    }
+}
