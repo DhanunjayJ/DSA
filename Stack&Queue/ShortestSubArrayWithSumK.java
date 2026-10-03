@@ -30,3 +30,24 @@ class Solution {
         return min==Integer.MAX_VALUE ? -1 : min;
     }
 }
+
+// using priorityQueue nlogn
+
+class Solution {
+    public int shortestSubarray(int[] nums, int k) {
+        //p[j]-p[i]>=k
+        //j-i = minimum possible.
+        PriorityQueue<long[]> pq = new PriorityQueue<>((a,b) -> Long.compare(a[0],b[0]));
+        pq.add(new long[]{0L,-1});
+        long prefix = 0;
+        int minLen = Integer.MAX_VALUE;
+        for(int j=0;j<nums.length;j++){
+            prefix += nums[j];
+            while(!pq.isEmpty() && prefix-pq.peek()[0]>=k){
+                minLen = Math.min(minLen,j-(int)pq.poll()[1]);
+            }
+            pq.offer(new long[]{prefix,j});
+        }
+        return minLen==Integer.MAX_VALUE ? -1  : minLen;
+    }
+}
