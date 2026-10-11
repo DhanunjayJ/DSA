@@ -62,3 +62,67 @@ class Solution {
         return root;
     }
 }
+
+
+/**
+ * Definition for a binary tree node.
+ * public class TreeNode {
+ *     int val;
+ *     TreeNode left;
+ *     TreeNode right;
+ *     TreeNode() {}
+ *     TreeNode(int val) { this.val = val; }
+ *     TreeNode(int val, TreeNode left, TreeNode right) {
+ *         this.val = val;
+ *         this.left = left;
+ *         this.right = right;
+ *     }
+ * }
+ */
+class Solution {
+    TreeNode prev = null;
+    public void flatten(TreeNode root) {
+        //reverse preorder traversal.
+        if(root==null) return;
+        //first do the right.
+        flatten(root.right);
+        //then do the left.
+        flatten(root.left);
+        //then make the current .prev to next;
+        root.right = prev;
+        root.left = null;
+        prev = root;
+    }
+}
+
+/**
+ * Definition for a binary tree node.
+ * public class TreeNode {
+ *     int val;
+ *     TreeNode left;
+ *     TreeNode right;
+ *     TreeNode() {}
+ *     TreeNode(int val) { this.val = val; }
+ *     TreeNode(int val, TreeNode left, TreeNode right) {
+ *         this.val = val;
+ *         this.left = left;
+ *         this.right = right;
+ *     }
+ * }
+ */
+class Solution {
+    public void flatten(TreeNode root) {
+        //using morris traversal
+        TreeNode curr = root;
+        while(curr!=null){
+            if(curr.left!=null){
+                TreeNode rightMost = curr.left;
+                while(rightMost.right!=null) rightMost=rightMost.right;
+                rightMost.right = curr.right;
+                curr.right = curr.left;
+                curr.left = null;
+            }
+            curr = curr.right;
+        }
+    }
+}
