@@ -358,7 +358,5 @@ void push(int node, int l, int r) {
 
 ```
 
-
-
 ---
 
