@@ -430,3 +430,391 @@ If an interviewer asks you a problem where you need to **reconstruct all shortes
 
 Showing that you understand *why* you are separating the layers without relying on an extra integer distance map shows a very high level of algorithmic maturity!
 ---
+
+You are 100% right—**`lot` cannot directly transform into `dog**`.
+
+They differ by **two** characters (`l` $\rightarrow$ `d` and `t` $\rightarrow$ `g`), which violates the rule.
+
+The convergence in the standard LeetCode example (`hit` to `cog`) actually happens at **`cog`**, where the two parents are **`dog`** and **`log`**:
+
+```
+            hit
+             |
+            hot
+           /   \
+        dot     lot
+         |       |
+        dog     log
+           \   /
+            cog
+
+```
+
+### The Correct Convergence Example
+
+At Level 3, the queue/set contains two words: **`dog`** and **`log`**. Both can reach **`cog`** with a single letter change:
+
+* `dog` $\rightarrow$ `cog` (only `d` $\rightarrow$ `c`)
+* `log` $\rightarrow$ `cog` (only `l` $\rightarrow$ `c`)
+
+#### What happens if you delete immediately:
+
+1. You process `dog` first.
+2. `dog` finds `cog` (1-letter diff).
+3. If your code deletes `cog` from the dictionary right here, `cog` is gone.
+4. Next, you process `log`.
+5. `log` looks for `cog` (1-letter diff), but `cog` was already deleted!
+6. `log` misses `cog`, completely losing the path `hit -> hot -> lot -> log -> cog`.
+
+#### What happens with `cl` and `nl` (deferred deletion):
+
+1. `cl` = `{"dog", "log"}`.
+2. `dog` checks `dict`, finds `cog`, adds `cog` to `nl`, and maps `childParMap["cog"].add("dog")`.
+3. `log` checks `dict`. Because `cog` has **not** been deleted yet, `log` finds it, adds it to `nl`, and maps `childParMap["cog"].add("log")`.
+4. Result: `childParMap.get("cog")` correctly stores **both** valid parents: `["dog", "log"]`.
+5. Only after the entire level is finished do we delete `cog` from `dict`.
+
+----
+
+Here is a detailed breakdown of how your second solution works, its underlying strategy, and the exact spots where it runs into trouble.
+
+---
+
+### High-Level Strategy
+
+Code #2 tries to solve the problem in two distinct phases:
+
+1. **Phase 1: BFS (`bfs`)**
+Starts at `beginWord` and explores outward level by level. It records the minimum step count (shortest distance) from `beginWord` to every reachable word inside `shortDist`.
+2. **Phase 2: DFS (`dfs`)**
+Starts at `beginWord` and attempts to reconstruct all shortest paths to `endWord` by only stepping onto neighbors whose recorded distance is exactly `current_distance + 1`.
+
+---
+
+### Step-by-Step Code Walkthrough
+
+#### 1. Entry Point: Setup and Dictionary Validation
+
+```java
+public List<List<String>> findLadders(String beginWord, String endWord, List<String> wordList) {
+    List<List<String>> ans = new ArrayList<>();
+    
+    if(beginWord.equals(endWord)){
+        ans.add(new ArrayList<>(List.of(beginWord)));
+        return ans;
+    }
+    
+    HashSet<String> dict = new HashSet<>();
+    for(String word : wordList) dict.add(word);
+
+    if(!dict.contains(endWord)) return ans;
+
+    HashMap<String,Integer> shortDist = new HashMap<>();
+
+    bfs(beginWord, shortDist, dict);
+    List<String> temp = new ArrayList<>();
+
+    HashSet<String> vis = new HashSet<>();
+    dfs(beginWord, endWord, shortDist, temp, ans, dict, vis, 0);
+
+    return ans;
+}
+
+```
+
+* **Base Checks:** If `beginWord` equals `endWord`, returns immediately. If `endWord` is not in `wordList`, no transformation is possible, returning an empty list.
+* **Dictionary Lookup:** Copies `wordList` into a `HashSet` named `dict` for $O(1)$ word existence checks.
+* **`shortDist` Map:** Prepares a map to store the shortest layer index (distance) for each word.
+
+---
+
+#### 2. The BFS Routine: Building the Distance Map
+
+```java
+public void bfs(String bw, HashMap<String,Integer> shortDist, HashSet<String> dict){
+    HashSet<String> vis = new HashSet<>();
+    Queue<Pair> q = new LinkedList<>();
+    q.add(new Pair(bw, 0));
+    vis.add(bw);
+
+    while(!q.isEmpty()){
+        Pair rem = q.remove();
+        String word = rem.word;
+        int seq = rem.sNo;
+
+        shortDist.put(word, seq);
+
+        char[] wordC = word.toCharArray();
+        for(int i = 0; i < wordC.length; i++){
+            char originalWord = wordC[i];
+            for(char c = 'a'; c <= 'z'; c++){
+                if(c == originalWord) continue;
+                wordC[i] = c;
+                String nbr = String.valueOf(wordC);
+
+                if(dict.contains(nbr) && !vis.contains(nbr)){
+                    vis.add(nbr);
+                    q.add(new Pair(nbr, seq + 1));
+                }
+            }
+            wordC[i] = originalWord;
+        }
+    }
+}
+
+```
+
+* **Queue Initialization:** A queue holds custom `Pair(word, sNo)` objects, starting with `(beginWord, 0)`.
+* **Immediate Visited Marking:** The moment a word `nbr` is generated, it gets added to `vis`.
+* **Neighbor Generation:** Tries mutating every letter of `word` from `'a'` to `'z'`. If the mutant exists in `dict` and has not been visited, it pushes it to the queue with step count `seq + 1`.
+* **Result:** Every reachable word gets an entry in `shortDist` like `{"hit": 0, "hot": 1, "dot": 2, "lot": 2, ...}`.
+
+---
+
+#### 3. The DFS Routine: Backtracking Guided by Distances
+
+```java
+public void dfs(String bw, String ew, HashMap<String,Integer> shortDist, 
+               List<String> temp, List<List<String>> ans, HashSet<String> dict,
+               HashSet<String> vis, int seq){
+    
+    vis.add(bw);
+    temp.add(bw);
+
+    if(bw.equals(ew)){
+        ans.add(new ArrayList<>(temp));
+        vis.remove(bw);
+        temp.remove(temp.size() - 1);
+        return;
+    }
+
+    char[] wordC = bw.toCharArray();
+    for(int i = 0; i < wordC.length; i++){
+        char originalWord = wordC[i];
+        for(char c = 'a'; c <= 'z'; c++){
+            if(c == originalWord) continue;
+            wordC[i] = c;
+            String nbr = String.valueOf(wordC);
+            
+            // THE CRITICAL GUARD: Only follow neighbors whose recorded distance is exactly seq + 1
+            if(dict.contains(nbr) && !vis.contains(nbr) 
+               && shortDist.containsKey(nbr) && seq + 1 == shortDist.get(nbr)){
+                dfs(nbr, ew, shortDist, temp, ans, dict, vis, seq + 1);
+            }
+        }
+        wordC[i] = originalWord;
+    }
+    vis.remove(bw);
+    temp.remove(temp.size() - 1);
+}
+
+```
+
+* **Backtracking State:** `temp` maintains the path taken so far.
+* **Strict Distance Filter:** It only traverses to an adjacent word `nbr` if `shortDist.get(nbr) == seq + 1`. This prevents cycles and avoids walking into longer paths.
+* **Termination:** Once `bw.equals(ew)`, a valid shortest sequence is copied into `ans`.
+
+---
+
+### Why Did This Specific Implementation Hit TLE?
+
+While the core concept is sound, two critical bottlenecks cause it to time out on large test suites:
+
+| Problem Spot | Code Location | Consequence |
+| --- | --- | --- |
+| **Full Traversal without Early Exit** | `while(!q.isEmpty())` in BFS | The BFS does not terminate when `endWord` is reached; it explores the entire graph until all words are exhausted. |
+| **Exploration of Forward Dead Ends** | `dfs(...)` traversing forward | If a branch steps forward in distance (`seq + 1 == shortDist.get(nbr)`) but never actually connects to `endWord`, DFS traverses all permutations of that dead-end subtree repeatedly. |
+| **Repeated 26-Letter Transformations** | Double loop in `dfs(...)` | DFS recalculates $26 \times L$ string permutations at every single recursive step instead of following a pre-built adjacency list. |
+
+
+---
+
+To make **Code #2** pass all test cases on LeetCode while keeping the **forward DFS** structure, we need to fix the three exact bottlenecks causing TLE:
+
+1. **Stop BFS early:** The moment the queue finishes the level that first discovers `endWord`, stop the BFS entirely. Do not explore deeper levels.
+2. **Pre-build the Directed Acyclic Graph (DAG) during BFS:** Do not re-run the $26 \times L$ string generation inside the recursive DFS. Save valid forward edges (`curr -> next`) into an adjacency map during the BFS itself.
+3. **Handle multiple parents properly in BFS:** Allow multiple words at distance $d$ to transition into the same word at distance $d+1$, so no shortest paths are missed.
+
+---
+
+### Optimized Code
+
+```java
+import java.util.*;
+
+class Solution {
+    public List<List<String>> findLadders(String beginWord, String endWord, List<String> wordList) {
+        List<List<String>> ans = new ArrayList<>();
+        Set<String> dict = new HashSet<>(wordList);
+        if (!dict.contains(endWord)) return ans;
+
+        // dist: records the shortest level distance from beginWord
+        Map<String, Integer> dist = new HashMap<>();
+        // adj: forward DAG edges (parent -> valid children in shortest path)
+        Map<String, List<String>> adj = new HashMap<>();
+
+        Queue<String> q = new ArrayDeque<>();
+        q.offer(beginWord);
+        dist.put(beginWord, 0);
+
+        boolean found = false;
+
+        // Phase 1: BFS level-by-level
+        while (!q.isEmpty()) {
+            int size = q.size();
+
+            for (int k = 0; k < size; k++) {
+                String curr = q.poll();
+                int currDist = dist.get(curr);
+
+                char[] wordC = curr.toCharArray();
+                for (int i = 0; i < wordC.length; i++) {
+                    char orig = wordC[i];
+                    for (char c = 'a'; c <= 'z'; c++) {
+                        if (c == orig) continue;
+                        wordC[i] = c;
+                        String nbr = String.valueOf(wordC);
+
+                        if (dict.contains(nbr)) {
+                            // First time seeing this neighbor
+                            if (!dist.containsKey(nbr)) {
+                                dist.put(nbr, currDist + 1);
+                                q.offer(nbr);
+                                adj.computeIfAbsent(curr, key -> new ArrayList<>()).add(nbr);
+                                if (nbr.equals(endWord)) found = true;
+                            } 
+                            // Word already discovered at the exact same next level by another parent
+                            else if (dist.get(nbr) == currDist + 1) {
+                                adj.computeIfAbsent(curr, key -> new ArrayList<>()).add(nbr);
+                            }
+                        }
+                    }
+                    wordC[i] = orig;
+                }
+            }
+
+            // Stop BFS early if endWord was found on this level
+            if (found) break;
+        }
+
+        // If endWord was never reached
+        if (!found) return ans;
+
+        // Phase 2: Lightweight Forward DFS using the pre-built DAG
+        List<String> path = new ArrayList<>();
+        path.add(beginWord);
+        dfs(beginWord, endWord, adj, path, ans);
+
+        return ans;
+    }
+
+    private void dfs(String curr, String endWord, Map<String, List<String>> adj, 
+                     List<String> path, List<List<String>> ans) {
+        if (curr.equals(endWord)) {
+            ans.add(new ArrayList<>(path));
+            return;
+        }
+
+        List<String> neighbors = adj.get(curr);
+        if (neighbors == null) return;
+
+        for (String next : neighbors) {
+            path.add(next);
+            dfs(next, endWord, adj, path, ans);
+            path.remove(path.size() - 1); // backtrack
+        }
+    }
+}
+
+```
+
+---
+
+### What Changed vs. Original Code #2
+
+| Feature | Original Code #2 | Optimized Code #2 |
+| --- | --- | --- |
+| **BFS Stopping Condition** | Ran until queue emptied completely | Terminates immediately after completing the level where `endWord` is found |
+| **BFS Queue Processing** | Polls elements one by one (`Pair`) | Uses level-by-level loop (`int size = q.size()`) with raw `String`s |
+| **Handling Shared Children** | Flagged `vis.add(nbr)` on first encounter, blocking other valid parents at the same level | Checks `dist.get(nbr) == currDist + 1` so all valid parents can link to the child |
+| **DFS Traversal** | Recomputed $26 \times L$ string mutations at every recursive frame | Iterates directly through `adj.get(curr)` in $O(1)$ lookup time |
+| **Visited Set in DFS** | Kept a `vis` set inside DFS | Removed: The DAG constructed in BFS is already cycle-free |
+
+---
+
+Let's strip away the dense code and look at the core problem with a plain, visual analogy.
+
+---
+
+### The Big Picture
+
+Think of **Word Ladder II** like finding the shortest driving routes from City A (`beginWord`) to City B (`endWord`):
+
+1. **Step 1 (BFS):** Draw a one-way map of all shortest roads leading forward.
+2. **Step 2 (DFS):** Walk down the roads you drew on that map to list every complete path.
+
+---
+
+### What Was Wrong with Original Code #2?
+
+In your original Code #2, two things caused it to time out:
+
+#### 1. It explored every dead end
+
+Suppose `hot` connects to both `dot` (which eventually reaches `cog`) and `lot` (which leads to a dead end with no way to `cog`).
+
+* In your original DFS, it blindly took the `lot` road and wandered around trying every single 26-letter variation in deep recursion, only to hit a dead end and fail.
+* Doing that across thousands of words takes massive computational time.
+
+#### 2. It recalculated letter changes over and over
+
+In your original DFS, at **every single step of recursion**, you ran:
+
+```java
+for (int i = 0; i < word.length; i++) {
+    for (char c = 'a'; c <= 'z'; c++) { ... }
+}
+
+```
+
+If your path tree has thousands of branches, you are creating thousands of new temporary string objects (`26 × word_length`) over and over again inside the recursive calls.
+
+---
+
+### How the Fix Works
+
+Instead of recalculating roads during the DFS, **BFS saves the exact valid roads into an adjacency map (`adj`) while measuring distances**:
+
+```
+BFS runs level-by-level:
+
+Level 0: hit
+         ↓
+Level 1: hot
+        ↙   ↘
+Level 2: dot   lot
+         ↓     ↓
+Level 3: dog   log
+        ↘   ↙
+Level 4: cog  <-- STOP BFS HERE!
+
+```
+
+#### What BFS stores in `adj`:
+
+* `"hit"` $\rightarrow$ `["hot"]`
+* `"hot"` $\rightarrow$ `["dot", "lot"]`
+* `"dot"` $\rightarrow$ `["dog"]`
+* `"lot"` $\rightarrow$ `["log"]`
+* `"dog"` $\rightarrow$ `["cog"]`
+* `"log"` $\rightarrow$ `["cog"]`
+
+#### How the new DFS runs:
+
+Now, DFS does **not** generate letters. It simply looks up the pre-built list:
+
+1. Start at `"hit"`. Look up `adj.get("hit")` $\rightarrow$ takes `"hot"`.
+2. Look up `adj.get("hot")` $\rightarrow$ splits into two branches: `"dot"` and `"lot"`.
+3. Follow each branch until you hit `"cog"`.
+
+Because it only walks pre-approved forward paths from `adj`, DFS never wastes time mutating strings, and it runs in milliseconds.
