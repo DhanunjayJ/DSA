@@ -335,3 +335,89 @@ If you have a massive road network (like an entire country on Google Maps) where
 
 ---
 
+The core difference between the two implementations is **eager updating** (Version 1) versus **lazy updating** (Version 2).
+
+Both implementations arrive at the exact same answer because Dijkstra's greedy invariant guarantees that **the first time a node is extracted from the Priority Queue, its distance is optimal**. However, they manage the priority queue and distance updates at different stages of traversal.
+
+---
+
+### Direct Comparison
+
+| Feature | Version 1: Eager Update (Standard) | Version 2: Lazy Update (BFS-style Push) |
+| --- | --- | --- |
+| **When is `dist[node]` updated?** | **At insertion:** Immediately when an edge proves shorter. | **At extraction:** Only when the node is polled from the PQ. |
+| **What `dist[i]` represents** | The *best-known distance so far* to node `i`. | A *finalized flag / locked distance* for node `i`. |
+| **PQ pruning check** | `if (currDist > dist[u]) continue;`<br>
+
+<br>*(Skips stale paths to `u`)* | `if (ans[v] != INF) continue;`<br>
+
+<br>*(Acts as a visited check)* |
+| **Number of PQ insertions** | Lower. Only pushes if `dist[u] + weight < dist[v]`. | Higher. Pushes **every unfinalized edge** to a neighbor. |
+| **Memory footprint** | Typically smaller queue size. | Queue can grow up to $O(E)$ entries. |
+
+---
+
+### Why the Queue Gets Redundant Copies in Both
+
+Java’s `PriorityQueue` does not support an efficient $O(\log V)$ `decreaseKey` operation. In classic Dijkstra (like the textbook version using a Fibonacci heap), if a shorter path to an existing node is found, its key is updated in-place.
+
+Without `decreaseKey`, both implementations use **duplicate insertion**:
+
+1. When a shorter path is found, a new `(node, distance)` pair is simply added to the priority queue.
+2. The older, longer distance remains buried in the priority queue.
+3. Eventually, that outdated pair pops out. Both algorithms require a skip condition:
+* **Version 1:** `currDist > dist[u]` skips the pair because a shorter distance has already been recorded and processed.
+* **Version 2:** `ans[u] != Integer.MAX_VALUE` skips the pair because the node has already been locked in.
+
+
+
+---
+
+### Which One Should You Implement?
+
+**Implement Version 1 (Eager Update).**
+
+Version 1 is the industry standard for competitive programming and technical interviews for two critical reasons:
+
+1. **Stricter PQ filtering:** By evaluating `dist[u] + weight < dist[v]` before pushing, Version 1 discards sub-optimal paths immediately. Version 2 blindly pushes any path to an unfinalized neighbor, causing the PQ to swell with junk entries that will just be skipped later.
+2. **Standard mental model:** In graph theory, *relaxation* occurs when evaluating an edge: if `d[u] + w < d[v]`, update `d[v]` and schedule it. Version 1 mirrors this formulation directly.
+
+---
+
+### Recommended Clean Template (Version 1)
+
+```java
+public int[] dijkstra(int V, List<List<Pair>> adj, int src) {
+    int[] dist = new int[V];
+    Arrays.fill(dist, Integer.MAX_VALUE);
+    
+    // Min-heap ordered by distance
+    PriorityQueue<Pair> pq = new PriorityQueue<>(Comparator.comparingInt(a -> a.distance));
+    
+    dist[src] = 0;
+    pq.add(new Pair(src, 0));
+    
+    while (!pq.isEmpty()) {
+        Pair curr = pq.poll();
+        int u = curr.node;
+        int d = curr.distance;
+        
+        // 1. Skip stale copies left over from prior duplicate inserts
+        if (d > dist[u]) continue;
+        
+        // 2. Relax outgoing edges
+        for (Pair edge : adj.get(u)) {
+            int v = edge.node;
+            int weight = edge.distance;
+            
+            if (dist[u] + weight < dist[v]) {
+                dist[v] = dist[u] + weight;
+                pq.add(new Pair(v, dist[v]));
+            }
+        }
+    }
+    
+    return dist;
+}
+
+```
