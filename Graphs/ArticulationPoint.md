@@ -251,3 +251,19 @@ if ((par == -1 && count > 1) || (par != -1 && low[nbr] >= disc[src])) {
 ```
 
 Once you make this change to separate the Root logic from the Non-Root logic, your solution will pass flawlessly!
+
+---
+
+Here is the exact distinction between the two:
+
+* **Critical Connections (Bridges):** You are deleting an **edge**. When `low[nbr] == disc[src]`, it means there is a cycle returning to `src`. Because a cycle gives you two paths between `src` and `nbr`, deleting the single edge `src — nbr` leaves the second path intact. That is why Bridges strictly require `low[nbr] > disc[src]`.
+* **Articulation Points:** You are deleting a **vertex** (and every edge attached to it). Even if `low[nbr] == disc[src]` forms a cycle back to `src`, deleting `src` destroys *both* the tree edge `src — nbr` and the back-edge returning to `src`. Unless the cycle reaches strictly **above** `src` (`low[nbr] < disc[src]`), that subtree has no escape route around `src`.
+
+| Condition | Meaning for Subtree `nbr` | Is edge `(src, nbr)` a Bridge? | Is vertex `src` an Articulation Point? |
+| --- | --- | --- | --- |
+| **`low[nbr] < disc[src]`** | Can reach an ancestor **above** `src` | **No** (alternate path exists) | **No** (can bypass `src` via ancestor) |
+| **`low[nbr] == disc[src]`** | Can only loop back **to `src**` | **No** (cycle provides 2nd edge) | **Yes** (removing `src` breaks the cycle) |
+| **`low[nbr] > disc[src]`** | Trapped strictly **below `src**` | **Yes** (no alternate path) | **Yes** (removing `src` strands subtree) |
+
+*(Note: The table above applies to non-root nodes; the root node only depends on having 2 or more independent DFS children).*
+

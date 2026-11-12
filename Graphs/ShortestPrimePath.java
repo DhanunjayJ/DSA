@@ -3,7 +3,7 @@ import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Scanner;
 
-class PPath {
+class ShortestPrimePath {
     static boolean[] isPrime = new boolean[10000];
 
     public static void sieve(){
